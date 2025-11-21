@@ -1,0 +1,29 @@
+# --- Core AI & Hardware Acceleration ---
+torch==2.8.0
+torchvision==0.23.0
+torchaudio==2.5.1
+accelerate==1.10.1
+faiss-gpu==1.7.2
+
+# --- LLMs & NLP ---
+transformers==4.57.1
+sentencepiece==0.2.1
+sentence-transformers==5.1.2
+tiktoken==0.12.0
+
+# --- RAG & Orchestration ---
+langchain==0.3.27
+langchain-community==0.3.31
+langchain-huggingface==0.3.1
+langchain-text-splitters==0.3.11
+langchain-core==0.3.79
+
+# --- Data Processing ---
+pandas==2.3.3
+numpy==1.26.4
+pyarrow==21.0.0
+protobuf==6.32.1
+
+# --- User Interface ---
+gradio==3.50.2
+gradio_client==0.6.1

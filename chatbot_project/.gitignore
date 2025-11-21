@@ -1,0 +1,39 @@
+--- Python & Environment ---
+
+pycache/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+.ipynb_checkpoints/
+
+--- Project Large Data (Don't push to GitHub) ---
+
+We want to keep the folder structure but not the files
+
+models/*
+!models/.gitkeep
+
+data/vector_db/*
+!data/vector_db/.gitkeep
+
+data/data_processed/*
+!data/data_processed/.gitkeep
+
+outputs/logs/.log
+outputs/audio/
+!outputs/audio/.gitkeep
+
+Optional: Ignore raw data if it's private
+
+data/Data_Master/*
+
+data/Data_chunks/*
+
+--- IDE Settings ---
+
+.vscode/
+.idea/
+*.swp
