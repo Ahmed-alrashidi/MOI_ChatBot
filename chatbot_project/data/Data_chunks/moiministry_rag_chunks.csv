@@ -1,0 +1,5 @@
+﻿chunk_id,service_id,chunk_title,chunk_text,chunk_type,language,meta
+1_description,1,الوصف,تمكين الأفراد من حجز موعد لمراجعة ديوان وزارة الداخلية.,description,ar,
+1_conditions,1,الشروط,,conditions,ar,
+1_fees,1,الرسوم,,fees,ar,
+1_access,1,طريقة الوصول,مواعيد > وزارة الداخلية > حجز موعد,access,ar,

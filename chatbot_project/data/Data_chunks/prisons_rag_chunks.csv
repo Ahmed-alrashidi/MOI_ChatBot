@@ -1,0 +1,9 @@
+﻿chunk_id,service_id,chunk_title,chunk_text,chunk_type,language,meta
+1_description,1,الوصف,تمكين الأفراد من حجز موعد لزيارة مسجون في أحد السجون.,description,ar,
+1_conditions,1,الشروط,,conditions,ar,
+1_fees,1,الرسوم,,fees,ar,
+1_access,1,طريقة الوصول,مواعيد > السجون > حجز موعد,access,ar,
+2_description,2,الوصف,تقديم طلب للمديرية العامة للسجون مع إمكانية الاستعلام عن الطلب.,description,ar,
+2_conditions,2,الشروط,لا يمكن رفع طلب جديد عند وجود طلب قائم.,conditions,ar,
+2_fees,2,الرسوم,,fees,ar,
+2_access,2,طريقة الوصول,خدماتي > خدمات > السجون > تواصل,access,ar,

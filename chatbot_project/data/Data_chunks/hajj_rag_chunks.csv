@@ -1,0 +1,9 @@
+﻿chunk_id,service_id,chunk_title,chunk_text,chunk_type,language,meta
+1_description,1,الوصف,تمكين المواطن والمقيم من الاستعلام عن أحقية أداء فريضة الحج لهذا العام.,description,ar,
+1_conditions,1,الشروط,,conditions,ar,
+1_fees,1,الرسوم,,fees,ar,
+1_access,1,طريقة الوصول,أبشر > خدماتي / استعلامات / الأحوال المدنية / الاستعلام العام عن أحقية القيام بالحج,access,ar,
+2_description,2,الوصف,تمكين المواطن والمقيم من الاستعلام عن طلبات الحج المقدمة.,description,ar,
+2_conditions,2,الشروط,مدخلات الخدمة: رقم الهوية، الرمز المرئي.,conditions,ar,
+2_fees,2,الرسوم,,fees,ar,
+2_access,2,طريقة الوصول,أبشر > خدماتي / استعلامات / الحج والعمرة / الاستعلام عن طلبات الحج,access,ar,
