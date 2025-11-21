@@ -17,6 +17,14 @@ def validate_schema(df: pd.DataFrame, schema: List[str], filename: str) -> None:
     """
     Checks if the DataFrame contains all required columns.
     Raises ValueError if columns are missing.
+    
+    Args:
+        df: The pandas DataFrame to check.
+        schema: List of required column names.
+        filename: Name of the file (for error reporting).
+        
+    Raises:
+        ValueError: If any required column is missing.
     """
     missing = [c for c in schema if c not in df.columns]
     if missing:

@@ -1,93 +1,92 @@
 import os
+import sys
+from dotenv import load_dotenv
+
+# Load environment variables from a .env file if present (For Local/IBEX)
+load_dotenv()
 
 class Config:
     # =====================================================
-    # 1. Project Paths (Dynamic & Relative)
+    # 1. Project Paths (Platform Agnostic & Dynamic)
     # =====================================================
-    # Base Directory: /ibex/.../chatbot_project
     PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
     
-    # -----------------------------------------------------
-    # Data Directory Structure (New Organization)
-    # -----------------------------------------------------
-    # Main Data Folder: chatbot_project/data
-    DATA_ROOT = os.path.join(PROJECT_ROOT, "data")
-
-    # Raw Data Inputs
-    # Path: chatbot_project/data/Data_Master
+    # Data Directories
+    DATA_ROOT = os.getenv("MOI_DATA_ROOT", os.path.join(PROJECT_ROOT, "data"))
     DATA_MASTER_DIR = os.path.join(DATA_ROOT, "Data_Master")
-    # Path: chatbot_project/data/Data_chunks
     DATA_CHUNKS_DIR = os.path.join(DATA_ROOT, "Data_chunks")
 
-    # Processed Data & Vector DB
-    # Path: chatbot_project/data/data_processed
+    # Processed & Vector DB
     PROCESSED_DIR = os.path.join(DATA_ROOT, "data_processed")
-    # Path: chatbot_project/data/vector_db
     VECTOR_DB_DIR = os.path.join(DATA_ROOT, "vector_db")
     
-    # -----------------------------------------------------
     # Models Directory
-    # -----------------------------------------------------
-    # Path: chatbot_project/models
-    # (Assuming you renamed '3_models' to 'models' in the root)
-    MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
+    MODELS_DIR = os.getenv("MOI_MODELS_DIR", os.path.join(PROJECT_ROOT, "models"))
 
-    # -----------------------------------------------------
     # Outputs Directory
-    # -----------------------------------------------------
-    # Path: chatbot_project/outputs (Renamed from 4_outputs)
-    OUTPUTS_DIR = os.path.join(PROJECT_ROOT, "outputs")
-    
-    # Sub-directories for logs and audio
+    OUTPUTS_DIR = os.getenv("MOI_OUTPUTS_DIR", os.path.join(PROJECT_ROOT, "outputs"))
     LOGS_DIR = os.path.join(OUTPUTS_DIR, "logs")
     AUDIO_DIR = os.path.join(OUTPUTS_DIR, "audio")
-    
-    # Log File Path
     LOG_FILE = os.path.join(LOGS_DIR, "app.log")
 
     # =====================================================
-    # 2. Model Configurations
+    # 2. Authentication (Hugging Face Token Strategy)
     # =====================================================
-    # HuggingFace Model IDs
+    @staticmethod
+    def get_hf_token():
+        """
+        Smartly retrieves the HF_TOKEN from various sources:
+        1. Google Colab Secrets (Best for Colab)
+        2. Environment Variable / .env file (Best for Local/IBEX)
+        """
+        # 1. Try Colab Secrets
+        try:
+            from google.colab import userdata
+            token = userdata.get('HF_TOKEN')
+            if token: return token
+        except ImportError:
+            pass # Not running on Colab
+
+        # 2. Try Environment Variables
+        token = os.getenv("HF_TOKEN")
+        if token: return token
+        
+        return None
+
+    # =====================================================
+    # 3. Model Configurations
+    # =====================================================
     EMBEDDING_MODEL_NAME = "BAAI/bge-m3"
     LLM_MODEL_NAME = "ALLaM-AI/ALLaM-7B-Instruct-preview"
     ASR_MODEL_NAME = "openai/whisper-large-v3"
 
     # =====================================================
-    # 3. RAG Engine Settings
+    # 4. RAG Engine Settings
     # =====================================================
-    # Text Splitting
     CHUNK_SIZE = 1500
     CHUNK_OVERLAP = 250
+    RETRIEVAL_K = 12
+    RERANK_TOP_K = 6
     
-    # Retrieval Strategies
-    RETRIEVAL_K = 12       # Initial candidates retrieved
-    RERANK_TOP_K = 6       # Final candidates passed to LLM
-    
-    # Generation Hyperparameters
     MAX_NEW_TOKENS = 700
     TEMPERATURE = 0.55
     TOP_P = 0.92
     REPETITION_PENALTY = 1.10
 
-    # Logic Flags
     ENABLE_ARABIC_NORMALIZATION = True
     ENABLE_QUERY_REWRITING = True
 
     @classmethod
     def setup_directories(cls):
-        """Ensure all required output directories exist."""
         dirs_to_create = [
-            cls.PROCESSED_DIR,
-            cls.VECTOR_DB_DIR,
-            cls.OUTPUTS_DIR,
-            cls.LOGS_DIR,
-            cls.AUDIO_DIR,
-            # We ensure model dir exists too, just in case
-            cls.MODELS_DIR
+            cls.DATA_ROOT, cls.PROCESSED_DIR, cls.VECTOR_DB_DIR,
+            cls.OUTPUTS_DIR, cls.LOGS_DIR, cls.AUDIO_DIR, cls.MODELS_DIR
         ]
         for directory in dirs_to_create:
-            os.makedirs(directory, exist_ok=True)
-            
-# Automatically create directories when config is imported
+            try:
+                os.makedirs(directory, exist_ok=True)
+            except OSError as e:
+                print(f"⚠️ Warning: Could not create directory {directory}: {e}")
+
+# Initialize directories
 Config.setup_directories()

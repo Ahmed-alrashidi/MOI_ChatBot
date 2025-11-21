@@ -1,13 +1,21 @@
 import re
 import unicodedata
+from typing import Optional
 
 # Regex for Arabic Diacritics (Tashkeel)
+# Covers common diacritics used in Arabic text
 ARABIC_DIAC = re.compile(r"[\u0617-\u061A\u064B-\u0652\u0670\u06D6-\u06ED]")
 
-def normalize_arabic(text: str) -> str:
+def normalize_arabic(text: Optional[str]) -> str:
     """
     Normalizes Arabic text by removing diacritics and unifying characters.
     Example: 'إستخراج إقامة' -> 'استخراج اقامه'
+    
+    Args:
+        text (str): The input Arabic text.
+        
+    Returns:
+        str: Normalized text.
     """
     if not isinstance(text, str):
         return ""
@@ -29,10 +37,16 @@ def normalize_arabic(text: str) -> str:
     
     return text.strip()
 
-def soft_clean(text: str) -> str:
+def soft_clean(text: Optional[str]) -> str:
     """
     Removes markdown markers, special chars, and noisy formatting.
     Used for cleaning raw data before embedding.
+    
+    Args:
+        text (str): Raw input text.
+        
+    Returns:
+        str: Cleaned text suitable for embedding.
     """
     if not isinstance(text, str):
         return ""
@@ -54,10 +68,20 @@ def soft_clean(text: str) -> str:
     
     return text.strip()
 
-def is_arabic(text: str) -> bool:
-    """Check if the text contains Arabic characters."""
+def is_arabic(text: Optional[str]) -> bool:
+    """
+    Check if the text contains Arabic characters.
+    Safe to call on None or non-string inputs.
+    """
+    if not isinstance(text, str):
+        return False
     return bool(re.search(r'[\u0600-\u06FF]', text))
 
-def looks_english(text: str) -> bool:
-    """Check if the text contains English characters."""
+def looks_english(text: Optional[str]) -> bool:
+    """
+    Check if the text contains English characters.
+    Safe to call on None or non-string inputs.
+    """
+    if not isinstance(text, str):
+        return False
     return bool(re.search(r"[A-Za-z]", text))
