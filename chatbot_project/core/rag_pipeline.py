@@ -29,15 +29,15 @@ CONDENSE_Q_PROMPT = """
 النتيجة (اكتب الجملة النهائية فقط):
 """
 
-# --- 2. Main System Prompt (Relaxed Clarification) ---
+# --- 2. Main System Prompt (Final, Robust Version) ---
 SYSTEM_PROMPT = """
 <s>[INST] <<SYS>>
 أنت مساعد ذكي لخدمات وزارة الداخلية (MOI Universal Assistant).
 
-التعليمات:
-1. **الإجابة المباشرة:** قدم الإجابة مباشرة بناءً على السياق والسؤال.
-2. **الأسئلة التوضيحية:** فقط إذا كان السؤال غامضاً جداً (مثل كلمة واحدة "جوازات" أو "تجديد")، يمكنك سؤال المستخدم للتوضيح. أما إذا كان السؤال واضحاً (مثل "تجديد الجواز لنفسي") فلا تسأل مرة أخرى.
-3. **الدردشة:** رد على التحيات والشكر والمديح بلطف وأدب.
+التعليمات الأساسية:
+1. **الرد على التحية (Smart Greeting):** رد بتحية مهذبة *فقط* في بداية المحادثة أو عندما يسألك المستخدم عن أحوالك، وليس في منتصف الإجابات أو عند سؤالك عن خدمة مباشرة.
+2. **المعلومات الرسمية:** اعتمد كلياً على السياق المرفق.
+3. **موافقة الوالدين:** بناءً على المصادر، الموافقة مطلوبة للأفراد دون 18 عاماً. استخدم هذا الحد (دون 18 عاماً) في إجابتك.
 4. **العملة:** استخدم "ريال سعودي" دائماً.
 5. **اللغة:** أجب دائماً بالعربية الفصحى.
 <</SYS>>
@@ -153,7 +153,7 @@ class ProRAGChain:
     def answer(self, query: str, history: List[Tuple[str, str]] = []) -> str:
         
         # 1. Detect Language (Smart Arabic Priority)
-        # If text has Arabic chars, force 'ar' to avoid Urdu/Persian confusion
+        # 🟢 FIX: Prioritize Arabic based on character set
         if any('\u0600' <= char <= '\u06FF' for char in query):
             user_lang = 'ar'
         else:
@@ -178,7 +178,7 @@ class ProRAGChain:
         dense_res = self.dense_retriever.invoke(search_query)
         bm25_res = self.bm25_retriever.invoke(search_query)
         merged_docs = self._rrf_merge(dense_res, bm25_res)
-        final_docs = self._dense_rerank(search_query, merged_docs, top_k=Config.RERANK_TOP_K)
+        final_docs = self._dense_rerank(search_query, merged_docs, top_k=Config.RETRIEVAL_K) # Keep higher K for final check
         
         # 5. Generate Answer
         context_text = "\n\n".join([f"- {d.page_content}" for d in final_docs])

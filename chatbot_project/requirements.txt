@@ -17,6 +17,9 @@ tiktoken>=0.6.0
 huggingface_hub>=0.20.0
 langdetect>=1.0.9
 
+# --- Text-to-Speech (New) ---
+gTTS>=2.5.0
+
 # --- RAG & Orchestration (LangChain) ---
 # Keeping 0.3.x ecosystem but allowing minor updates
 langchain>=0.3.0
