@@ -11,14 +11,14 @@ MOI_CSS = """
     margin-bottom: 20px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
-.moi-header h1 { color: white !important; font-size: 2.5em; margin: 0; }
-.moi-header p { color: #d4af37 !important; font-size: 1.2em; margin-top: 5px; }
+.moi-header h1 { color: white !important; font-size: 2.2em; margin: 0; }
+.moi-header p { color: #d4af37 !important; font-size: 1.1em; margin-top: 8px; font-weight: bold; }
 .lang-btn { font-size: 1.2em; height: 60px; border-radius: 8px !important; }
 """
 
 HEADER_HTML = """
 <div class='moi-header'>
-    <h1>المساعد الذكي لوزارة الداخلية</h1>
-    <p>MOI Smart Assistant | Powered by ALLaM-7B</p>
+    <h1>MOI Universal Assistant | المساعد الذكي الشامل</h1>
+    <p>يجيب على استفساراتك بأي لغة | Supports All Languages</p>
 </div>
 """

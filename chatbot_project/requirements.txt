@@ -1,47 +1,38 @@
---- Core AI & Hardware Acceleration ---
-
-We use >= to allow Colab/Local to pick the compatible CUDA version automatically.
-
+# --- Core AI & Hardware Acceleration ---
+# We use >= to allow Colab/Local to pick the compatible CUDA version automatically.
 torch>=2.2.0
 torchvision>=0.17.0
 torchaudio>=2.2.0
 accelerate>=0.27.0
 
-Use faiss-gpu for CUDA support. On Windows, if this fails, use faiss-cpu.
-
+# Use faiss-gpu for CUDA support. On Windows, if this fails, use faiss-cpu.
 faiss-gpu>=1.7.2
 
---- LLMs & NLP ---
-
-Relaxed versions to ensure compatibility with different environments
-
+# --- LLMs & NLP ---
+# Relaxed versions to ensure compatibility with different environments
 transformers>=4.38.0
 sentencepiece>=0.2.0
 sentence-transformers>=2.5.0
 tiktoken>=0.6.0
 huggingface_hub>=0.20.0
+langdetect>=1.0.9
 
---- RAG & Orchestration (LangChain) ---
-
-Keeping 0.3.x ecosystem but allowing minor updates
-
+# --- RAG & Orchestration (LangChain) ---
+# Keeping 0.3.x ecosystem but allowing minor updates
 langchain>=0.3.0
 langchain-community>=0.3.0
 langchain-huggingface>=0.0.1
 langchain-text-splitters>=0.0.1
 langchain-core>=0.3.0
 
---- Data Processing ---
-
+# --- Data Processing ---
 pandas>=2.0.0
 numpy>=1.24.0
 pyarrow>=14.0.0
 protobuf>=4.0.0
 python-dotenv>=1.0.0
 
---- User Interface ---
-
-STRICTLY PINNED: Gradio 4.x breaks the code syntax. Keep 3.50.2.
-
+# --- User Interface ---
+# STRICTLY PINNED: Gradio 4.x breaks the code syntax. Keep 3.50.2.
 gradio==3.50.2
 gradio_client==0.6.1
