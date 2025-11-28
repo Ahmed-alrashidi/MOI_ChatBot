@@ -1,68 +1,86 @@
+"""
+ui/theme.py
+
+This module contains the visual definitions for the Gradio User Interface.
+It strictly separates the 'Presentation Layer' (CSS/HTML) from the 'Logic Layer' (Python).
+
+Key Components:
+1. Custom CSS for MOI branding (Green/Gold theme, Tajawal font).
+2. HTML structure for the custom header.
+3. Asset paths for logos.
+"""
+
 import os
 
-LOGO_PATH = "file/ui/moi_logo.png"
+# Path to the logo image. 
+# Note: 'file/' prefix is specific to Gradio to serve local files securely.
+LOGO_PATH: str = "file/ui/moi_logo.png"
 
-MOI_CSS = """
+# --- CSS Styling ---
+# Defines the look and feel. 
+# - Imports 'Tajawal' font for modern Arabic typography.
+# - Overrides default Gradio styles to match Ministry of Interior colors.
+MOI_CSS: str = """
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
 
+/* Global Font & Background Settings */
 body, .gradio-container { 
     font-family: 'Tajawal', sans-serif !important; 
     background-color: #f0f2f5 !important; 
 }
 
-/* --- Tech Header Styling --- */
+/* --- Tech Header Container --- */
 .moi-header {
     display: flex;
-    /* FIX 1: Ensure main elements are spaced across the bar */
-    justify-content: space-between; 
+    justify-content: space-between; /* Spacing between Title and Tech Badges */
     align-items: center;
     padding: 15px 40px; 
+    /* MOI Official Gradient (Dark Green) */
     background: linear-gradient(135deg, #004D26 0%, #006C35 100%);
     border-radius: 15px;
     box-shadow: 0 8px 20px rgba(0, 77, 38, 0.2);
     margin-bottom: 20px;
-    border-bottom: 4px solid #d4af37;
+    border-bottom: 4px solid #d4af37; /* Gold accent line */
 }
 
-/* FIX 2: Grouping the Logo and Title (RTL Alignment) */
+/* --- Logo & Title Group (Right Side / RTL) --- */
 .header-title-group {
     display: flex;
-    flex-direction: row-reverse; 
+    flex-direction: row-reverse; /* Ensure Logo is to the right of text in RTL */
     align-items: center;
     gap: 20px;
     text-align: right;
 }
 
 .moi-logo {
-    width: 80px; /* Reduced size slightly for better fit */
+    width: 80px;
     height: auto;
     filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
 }
 
 .header-title-group h1 { 
     color: #ffffff !important; 
-    font-size: 1.8em; /* Adjusted font size */
+    font-size: 1.8em;
     margin: 0; 
     font-weight: 700;
 }
 
 .header-title-group p { 
-    color: #d4af37 !important; 
-    font-size: 0.9em; /* Adjusted font size */
+    color: #d4af37 !important; /* Gold text */
+    font-size: 0.9em;
     margin: 0; 
     opacity: 0.9;
 }
 
-/* --- Tech Badges (FIX 3: Left Alignment and Horizontal Flow) --- */
+/* --- Tech Status Badges (Left Side) --- */
 .tech-badges {
     display: flex;
     gap: 10px;
-    /* We align these left logically, even though the whole div is flexed LTR */
     align-items: center; 
 }
 
 .badge {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.15); /* Glassmorphism effect */
     padding: 4px 12px;
     border-radius: 20px;
     color: #fff;
@@ -74,6 +92,7 @@ body, .gradio-container {
     gap: 5px;
 }
 
+/* Glowing Green Dot for 'Online' status */
 .dot {
     height: 8px;
     width: 8px;
@@ -83,16 +102,17 @@ body, .gradio-container {
     box-shadow: 0 0 5px #00ff00;
 }
 
-/* --- Chat & Audio Styling --- */
+/* --- Chat Bubble Customization --- */
 .message.bot {
-    background-color: #E8F5E9 !important;
+    background-color: #E8F5E9 !important; /* Light Green background for AI */
     border: 1px solid #C8E6C9 !important;
-    color: #1b5e20 !important;
+    color: #1b5e20 !important; /* Dark Green text */
 }
 """
 
-# HTML with separated content groups
-HEADER_HTML = f"""
+# --- HTML Header Structure ---
+# This string is injected directly into the Gradio interface using gr.HTML()
+HEADER_HTML: str = f"""
 <div class='moi-header'>
     
     <div class='header-title-group' dir='rtl'>

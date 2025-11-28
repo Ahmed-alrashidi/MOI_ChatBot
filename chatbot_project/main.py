@@ -2,8 +2,10 @@ import os
 import sys
 import logging
 import warnings
+from typing import NoReturn
 
-# 1. Suppress annoying tokenizer warnings before importing transformers
+# 1. Suppress annoying tokenizer warnings & FutureWarnings
+# This must be done before importing transformers or heavy libs
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -13,12 +15,15 @@ from huggingface_hub import login
 from config import Config
 from utils.logger import setup_logger
 
-# Initialize Logger
+# Initialize Main Application Logger
 logger = setup_logger("MainApp")
 
-def validate_environment():
+def validate_environment() -> None:
     """
-    Checks for HF_TOKEN. If missing, prints a clear guide and exits.
+    Performs pre-flight checks to ensure the environment is ready.
+    Specifically checks for the Hugging Face Token (HF_TOKEN) required for gated models.
+    
+    If the token is missing, it prints a colorful, instructive guide and exits.
     """
     token = Config.get_hf_token()
     
@@ -57,12 +62,21 @@ def validate_environment():
         logger.error(f"❌ HF Login failed: {e}")
         sys.exit(1)
 
-def main():
+def main() -> None:
+    """
+    Main Execution Flow:
+    1. Authenticate environment.
+    2. Load Data (ETL).
+    3. Initialize/Load Vector Database.
+    4. Warm up AI Models (LLM + ASR).
+    5. Launch Gradio Interface.
+    """
+    
     # 1. Pre-flight Check (Authentication)
     validate_environment()
 
     # 2. Lazy imports (Import only AFTER validation to avoid errors)
-    # This prevents loading heavy libraries if the token is missing
+    # This prevents loading heavy libraries if the token is missing, saving time.
     from data.ingestion import DataIngestor
     from core.model_loader import ModelManager
     from core.vector_store import VectorStoreManager
@@ -77,7 +91,7 @@ def main():
     embedding_model = ModelManager.get_embedding_model()
     
     # We always need raw documents for BM25 (Keyword Search), 
-    # even if the Vector Store (FAISS) already exists.
+    # even if the Vector Store (FAISS) already exists on disk.
     logger.info("🔹 Loading documents from CSVs (Required for Hybrid Search)...")
     ingestor = DataIngestor()
     all_documents = ingestor.load_and_process()
@@ -87,13 +101,16 @@ def main():
         return
 
     # Handle Vector Store (FAISS)
-    if os.path.exists(os.path.join(Config.VECTOR_DB_DIR, "index.faiss")):
+    # Strategy: Check if index exists on disk. If yes, load it. If no, build it.
+    index_path = os.path.join(Config.VECTOR_DB_DIR, "index.faiss")
+    
+    if os.path.exists(index_path):
         logger.info("🔹 Existing Vector DB found. Loading index...")
-        # Load existing index without rebuilding
+        # Load existing index without rebuilding (Faster restart)
         vector_store = VectorStoreManager.load_or_build(embedding_model)
     else:
         logger.info("🔸 No Vector DB found. Building fresh index...")
-        # Build new index from documents
+        # Build new index from documents (First run)
         vector_store = VectorStoreManager.load_or_build(embedding_model, documents=all_documents)
 
     # =====================================================
@@ -101,11 +118,15 @@ def main():
     # =====================================================
     logger.info("🔹 Initializing RAG Chain (Models & Logic)...")
     
-    # Pre-load heavy models to GPU to avoid latency on first request
+    # Pre-load heavy models to GPU to avoid latency on the first user request
+    # This effectively "warms up" the system.
+    logger.info("   - Warming up LLM...")
     ModelManager.get_llm()
+    
+    logger.info("   - Warming up Whisper ASR...")
     ModelManager.get_asr_pipeline()
     
-    # Initialize the Brain
+    # Initialize the Brain (The Chain)
     rag_chain = ProRAGChain(vector_store, all_documents)
     
     # =====================================================
@@ -115,13 +136,15 @@ def main():
     
     app = create_app(rag_chain)
     
-    # Launch with public link (share=True) for easy access
-    # server_name="0.0.0.0" allows access from external network (important for IBEX/Colab)
+    # Launch Configuration
+    # - server_name="0.0.0.0": Essential for exposing the port on IBEX/Docker/Colab
+    # - share=True: Creates a temporary public link for easy sharing/testing
     app.queue().launch(
         server_name="0.0.0.0", 
         server_port=7860, 
         share=True,
-        inline=False
+        inline=False,
+        favicon_path="ui/moi_logo.png" if os.path.exists("ui/moi_logo.png") else None
     )
 
 if __name__ == "__main__":
