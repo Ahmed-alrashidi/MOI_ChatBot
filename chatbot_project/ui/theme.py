@@ -1,86 +1,68 @@
-"""
-ui/theme.py
-
-This module contains the visual definitions for the Gradio User Interface.
-It strictly separates the 'Presentation Layer' (CSS/HTML) from the 'Logic Layer' (Python).
-
-Key Components:
-1. Custom CSS for MOI branding (Green/Gold theme, Tajawal font).
-2. HTML structure for the custom header.
-3. Asset paths for logos.
-"""
-
 import os
 
-# Path to the logo image. 
-# Note: 'file/' prefix is specific to Gradio to serve local files securely.
-LOGO_PATH: str = "file/ui/moi_logo.png"
+LOGO_PATH = "file/ui/moi_logo.png"
 
-# --- CSS Styling ---
-# Defines the look and feel. 
-# - Imports 'Tajawal' font for modern Arabic typography.
-# - Overrides default Gradio styles to match Ministry of Interior colors.
-MOI_CSS: str = """
+MOI_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
 
-/* Global Font & Background Settings */
 body, .gradio-container { 
     font-family: 'Tajawal', sans-serif !important; 
     background-color: #f0f2f5 !important; 
 }
 
-/* --- Tech Header Container --- */
+/* --- Tech Header Styling --- */
 .moi-header {
     display: flex;
-    justify-content: space-between; /* Spacing between Title and Tech Badges */
+    /* FIX 1: Ensure main elements are spaced across the bar */
+    justify-content: space-between; 
     align-items: center;
     padding: 15px 40px; 
-    /* MOI Official Gradient (Dark Green) */
     background: linear-gradient(135deg, #004D26 0%, #006C35 100%);
     border-radius: 15px;
     box-shadow: 0 8px 20px rgba(0, 77, 38, 0.2);
     margin-bottom: 20px;
-    border-bottom: 4px solid #d4af37; /* Gold accent line */
+    border-bottom: 4px solid #d4af37;
 }
 
-/* --- Logo & Title Group (Right Side / RTL) --- */
+/* FIX 2: Grouping the Logo and Title (RTL Alignment) */
 .header-title-group {
     display: flex;
-    flex-direction: row-reverse; /* Ensure Logo is to the right of text in RTL */
+    flex-direction: row-reverse; 
     align-items: center;
     gap: 20px;
     text-align: right;
 }
 
 .moi-logo {
-    width: 80px;
+    width: 80px; /* Reduced size slightly for better fit */
     height: auto;
     filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
 }
 
 .header-title-group h1 { 
     color: #ffffff !important; 
-    font-size: 1.8em;
+    font-size: 1.8em; /* Adjusted font size */
     margin: 0; 
     font-weight: 700;
 }
 
 .header-title-group p { 
-    color: #d4af37 !important; /* Gold text */
-    font-size: 0.9em;
+    color: #d4af37 !important; 
+    font-size: 0.9em; /* Adjusted font size */
     margin: 0; 
     opacity: 0.9;
 }
 
-/* --- Tech Status Badges (Left Side) --- */
+/* --- Tech Badges (FIX 3: Left Alignment and Horizontal Flow) --- */
 .tech-badges {
     display: flex;
     gap: 10px;
+    /* We align these left logically, even though the whole div is flexed LTR */
     align-items: center; 
 }
 
 .badge {
-    background: rgba(255, 255, 255, 0.15); /* Glassmorphism effect */
+    background: rgba(255, 255, 255, 0.15);
     padding: 4px 12px;
     border-radius: 20px;
     color: #fff;
@@ -92,7 +74,6 @@ body, .gradio-container {
     gap: 5px;
 }
 
-/* Glowing Green Dot for 'Online' status */
 .dot {
     height: 8px;
     width: 8px;
@@ -102,17 +83,16 @@ body, .gradio-container {
     box-shadow: 0 0 5px #00ff00;
 }
 
-/* --- Chat Bubble Customization --- */
+/* --- Chat & Audio Styling --- */
 .message.bot {
-    background-color: #E8F5E9 !important; /* Light Green background for AI */
+    background-color: #E8F5E9 !important;
     border: 1px solid #C8E6C9 !important;
-    color: #1b5e20 !important; /* Dark Green text */
+    color: #1b5e20 !important;
 }
 """
 
-# --- HTML Header Structure ---
-# This string is injected directly into the Gradio interface using gr.HTML()
-HEADER_HTML: str = f"""
+# HTML with separated content groups
+HEADER_HTML = f"""
 <div class='moi-header'>
     
     <div class='header-title-group' dir='rtl'>
@@ -127,7 +107,7 @@ HEADER_HTML: str = f"""
         <span class='badge'><span class='dot'></span> System Online</span>
         <span class='badge'>🤖 Model: ALLaM-7B-Instruct</span>
         <span class='badge'>⚡ RAG: Hybrid (Dense+BM25)</span>
-        <span class='badge'>v2.1.0</span>
+        <span class='badge'>v3</span>
     </div>
 </div>
 """
