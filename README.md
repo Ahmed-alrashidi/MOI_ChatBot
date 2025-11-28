@@ -1,6 +1,6 @@
 # 🇸🇦 MOI Universal Assistant (المساعد الذكي الشامل)
 
-![MOI Logo](ui/moi_logo.png)
+(ui/moi_logo.png)
 
 > An advanced AI-powered conversational agent designed for the Ministry of Interior (MOI), utilizing the **ALLaM-7B** Saudi LLM and a Hybrid RAG architecture to provide accurate, real-time assistance for Passport, Traffic, and Security services.
 
