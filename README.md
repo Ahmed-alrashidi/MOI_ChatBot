@@ -38,19 +38,6 @@ We tested the system against a verified ground-truth dataset covering Jawazat, T
 
 ---
 
-## 👥 The Team
-
-| Member | Role | Key Contributions |
-| :--- | :--- | :--- |
-| **Sultan Alshaibani** | Project Lead | Strategy, Model Selection (ALLaM), Resource Mgmt. |
-| **Ahmed Alrashidi** | System Architect | RAG Pipeline Logic (RRF), Orchestration, Gradio UI Logic. |
-| **Sultan Alotaibi** | Search Engine | Vector Store (FAISS), Embeddings Optimization. |
-| **Fahad Alqahtani** | Data Engineer | ETL Pipeline, Schema Validation, Data Cleaning. |
-| **Abdulaziz Almutairi**| UI/UX & Translation | Frontend Design (MOI Theme), RTL Support, TTS Integration. |
-| **Rakan Alharbi** | QA & Testing | Benchmarking, Stress Testing, System Logging. |
-
----
-
 ## 📂 Project Structure
 
 ```bash
