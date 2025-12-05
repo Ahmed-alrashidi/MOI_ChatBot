@@ -29,7 +29,8 @@ We tested the system against a verified ground-truth dataset covering Jawazat, T
 ## 🛠️ Tech Stack
 
 * **Core:** Python 3.9, LangChain, Transformers.
-* **Models:** * LLM: `ALLaM-AI/ALLaM-7B-Instruct-preview`
+* **Models:**
+    * LLM: `ALLaM-AI/ALLaM-7B-Instruct-preview`
     * Embedding: `BAAI/bge-m3`
     * ASR: `openai/whisper-large-v3`
 * **Database:** FAISS (Vector Store).
