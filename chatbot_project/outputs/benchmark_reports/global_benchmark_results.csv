@@ -1,0 +1,21 @@
+﻿language,question,generated_answer,ground_truth,semantic_accuracy,exact_match,f1_score,hallucination,latency_seconds
+Arabic,كم سعر تجديد جواز السفر 10 سنوات؟,"السلام عليكم ورحمة الله وبركاته، أهلاً وسهلاً بك، كيف حالك؟
+
+سعر تجديد جواز السفر السعودي لمدة 10 سنوات هو 600 ريال سعودي.",سعر تجديد جواز السفر السعودي لمدة عشر سنوات هو 600 ريال سعودي.,0.9508,0,0.6471,0,1.5075
+Arabic,كيف اسدد مخالفاتي المرورية؟,"أهلاً وسهلاً بك، كيف يمكنني مساعدتك اليوم؟ بالنسبة لسداد المخالفات المرورية، يمكنك ذلك عبر منصة أبشر. تفضل بزيارة الموقع الإلكتروني للمنصة واتبع الخطوات التالية:
+
+1.	قم بتسجيل الدخول إلى حسابك الشخصي.
+2.	اختر الخدمات الإلكترونية.
+3.	اختر المرور.
+4.	ثم اختر المخالفات المرورية.
+5.	سيتم عرض جميع المخالفات المرورية الخاصة بك.
+6.	اختر المخالفة التي تريد سدادها.
+7.	قم بإدخال بيانات الدفع المطلوبة.
+8.	أكمل عملية الدفع.
+
+تأكد من أن يكون لديك حساب بنكي مفعل حتى تتمكن من إتمام عملية الدفع بنجاح. هل تحتاج إلى مساعدة أخرى؟",يمكن تسديد المخالفات المرورية عبر منصة أبشر من خلال الخدمات الإلكترونية.,0.8563,0,0.1633,0,4.1808
+English,What is the fee for renewing a passport for 10 years?,The fees for renewing a Saudi passport for ten years are 600 riyals.,The fee for renewing the Saudi passport for 10 years is 600 SAR.,0.9617,0,0.6364,0,2.1532
+French,Quel est le tarif de renouvellement du passeport pour 10 ans ?,Les frais de renouvellement d'un passeport de dix ans sont de 600 riyals saoudiens.,Les frais de renouvellement du passeport saoudien pour 10 ans sont de 600 SAR.,0.9327,0,0.6429,0,2.0407
+Chinese,续签护照10年的费用是多少？,你好，我今天能帮你做些什么吗？,续签沙特护照10年的费用为600沙特里亚尔。,0.3627,0,0.0,1,2.3156
+German,Wie hoch ist die Gebühr für die Erneuerung des Reisepasses für 10 Jahre?,"Hallo und herzlich willkommen, wie kann ich Ihnen heute helfen?",Die Gebühr für die Erneuerung des saudischen Reisepasses für 10 Jahre beträgt 600 SAR.,0.2931,0,0.0,1,1.7859
+Hindi,10 साल के लिए पासपोर्ट नवीनीकरण शुल्क क्या है?,"नमस्कार, आप कैसे हैं? एक दशक के पास पासपोर्ट रियन्सिंग की खर्च 600 सीडी है।",10 वर्षों के लिए सऊदी पासपोर्ट के नवीनीकरण का शुल्क 600 रियाल है।,0.7329,0,0.2857,1,6.2577
