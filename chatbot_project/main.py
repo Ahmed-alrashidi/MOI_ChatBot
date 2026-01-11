@@ -1,98 +1,73 @@
 import os
 import sys
-import logging
+import torch
 import warnings
-from typing import NoReturn
-
-# 1. Suppress annoying tokenizer warnings & FutureWarnings
-# This must be done before importing transformers or heavy libs
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-warnings.filterwarnings("ignore", category=FutureWarning)
-
 from huggingface_hub import login
 
-# Import Config first to setup paths
+# 1. Suppress warnings for cleaner logs
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+warnings.filterwarnings("ignore")
+
 from config import Config
 from utils.logger import setup_logger
+from core.model_loader import ModelManager
+from core.vector_store import VectorStoreManager
+from core.rag_pipeline import ProRAGChain
+from data.ingestion import DataIngestor
+
+# ✅ FIX: Correct import path for the UI app
+from ui.app import create_app
 
 # Initialize Main Application Logger
-logger = setup_logger("MainApp")
+logger = setup_logger("Main_Launcher")
 
-def validate_environment() -> None:
+def check_gpu_status():
     """
-    Performs pre-flight checks to ensure the environment is ready.
-    Specifically checks for the Hugging Face Token (HF_TOKEN) required for gated models.
-    
-    If the token is missing, it prints a colorful, instructive guide and exits.
+    Verifies that we are actually running on the A100 GPU.
     """
-    token = Config.get_hf_token()
-    
+    if torch.cuda.is_available():
+        gpu_name = torch.cuda.get_device_name(0)
+        gpu_mem = torch.cuda.get_device_properties(0).total_memory / 1e9
+        logger.info(f"🚀 Hardware Check: Detected GPU: {gpu_name} ({gpu_mem:.2f} GB VRAM)")
+        
+        if "A100" in gpu_name:
+            logger.info("✅ Excellent! System is optimized for this hardware.")
+        else:
+            logger.warning(f"⚠️ Performance Warning: Running on {gpu_name}, not A100.")
+    else:
+        logger.error("❌ CRITICAL: No GPU detected! The system will be extremely slow.")
+
+def main():
+    logger.info("==================================================")
+    logger.info("   🏛️  MOI SMART ASSISTANT - SYSTEM STARTUP  🏛️   ")
+    logger.info("==================================================")
+
+    # 1. Environment & Auth Check
+    token = Config.get_hf_token() # Updated to use the getter method safely
     if not token:
-        # ANSI Color codes for terminal output
-        RED = "\033[91m"
-        RESET = "\033[0m"
-        BOLD = "\033[1m"
-        
-        error_msg = f"""
-        {RED}{BOLD}❌ CRITICAL ERROR: Hugging Face Token (HF_TOKEN) is missing!{RESET}
-        
-        To run this project, you need access to gated models (like ALLaM).
-        
-        {BOLD}👉 OPTION 1: If using Google Colab:{RESET}
-           1. Click on the 'Keys' icon (🔑) on the left sidebar.
-           2. Add a new secret named 'HF_TOKEN' with your key.
-           3. Toggle 'Notebook access' to ON.
-           
-        {BOLD}👉 OPTION 2: If running Locally or on IBEX:{RESET}
-           1. Create a file named '.env' in the project root.
-           2. Add this line: HF_TOKEN=hf_your_token_here
-           3. OR export it in terminal: export HF_TOKEN=hf_your_token_here
-           
-        🔗 Get your token here: https://huggingface.co/settings/tokens
-        """
-        print(error_msg)
-        logger.critical("HF_TOKEN missing. Execution stopped.")
-        sys.exit(1)
+        logger.error("❌ HF_TOKEN is missing! Cannot load gated models (ALLaM).")
+        return
     
-    # If token exists, log in to Hub to ensure access to gated repos
     try:
+        logger.info("🔐 Authenticating with Hugging Face...")
         login(token=token)
-        logger.info("✅ Successfully logged in to Hugging Face Hub.")
+        logger.info("✅ Authentication successful.")
     except Exception as e:
-        logger.error(f"❌ HF Login failed: {e}")
-        sys.exit(1)
+        logger.error(f"❌ Authentication failed: {e}")
+        return
 
-def main() -> None:
-    """
-    Main Execution Flow:
-    1. Authenticate environment.
-    2. Load Data (ETL).
-    3. Initialize/Load Vector Database.
-    4. Warm up AI Models (LLM + ASR).
-    5. Launch Gradio Interface.
-    """
-    
-    # 1. Pre-flight Check (Authentication)
-    validate_environment()
+    # 2. Hardware Check
+    check_gpu_status()
 
-    # 2. Lazy imports (Import only AFTER validation to avoid errors)
-    # This prevents loading heavy libraries if the token is missing, saving time.
-    from data.ingestion import DataIngestor
-    from core.model_loader import ModelManager
-    from core.vector_store import VectorStoreManager
-    from core.rag_pipeline import ProRAGChain
-    from ui.app import create_app
-
-    logger.info("🚀 Starting MOI Chatbot Application...")
+    # 3. Model Warmup (Pre-load to GPU)
+    logger.info("🔹 Warming up AI Models on A100...")
+    ModelManager.get_embedding_model() # BGE-M3
+    ModelManager.get_llm()             # ALLaM-7B (bfloat16)
+    ModelManager.get_asr_pipeline()    # Whisper-Large-v3
     
-    # =====================================================
-    # 3. Data & Vector Store Setup
-    # =====================================================
-    embedding_model = ModelManager.get_embedding_model()
-    
-    # We always need raw documents for BM25 (Keyword Search), 
-    # even if the Vector Store (FAISS) already exists on disk.
-    logger.info("🔹 Loading documents from CSVs (Required for Hybrid Search)...")
+    # 4. Data Loading (Crucial for Hybrid Search)
+    # Even if Vector DB exists, we MUST load raw docs to initialize BM25 (Keyword Search)
+    logger.info("🔹 Loading documents for Hybrid Search (BM25)...")
     ingestor = DataIngestor()
     all_documents = ingestor.load_and_process()
     
@@ -100,57 +75,46 @@ def main() -> None:
         logger.error("❌ No documents found! Please check 'data/Data_Master' and 'data/Data_chunks'. Exiting.")
         return
 
-    # Handle Vector Store (FAISS)
-    # Strategy: Check if index exists on disk. If yes, load it. If no, build it.
+    # 5. Vector Store Management
     index_path = os.path.join(Config.VECTOR_DB_DIR, "index.faiss")
-    
-    if os.path.exists(index_path):
-        logger.info("🔹 Existing Vector DB found. Loading index...")
-        # Load existing index without rebuilding (Faster restart)
-        vector_store = VectorStoreManager.load_or_build(embedding_model)
-    else:
-        logger.info("🔸 No Vector DB found. Building fresh index...")
-        # Build new index from documents (First run)
-        vector_store = VectorStoreManager.load_or_build(embedding_model, documents=all_documents)
+    embed_model = ModelManager.get_embedding_model()
 
-    # =====================================================
-    # 4. Initialize RAG Engine
-    # =====================================================
-    logger.info("🔹 Initializing RAG Chain (Models & Logic)...")
-    
-    # Pre-load heavy models to GPU to avoid latency on the first user request
-    # This effectively "warms up" the system.
-    logger.info("   - Warming up LLM...")
-    ModelManager.get_llm()
-    
-    logger.info("   - Warming up Whisper ASR...")
-    ModelManager.get_asr_pipeline()
-    
-    # Initialize the Brain (The Chain)
-    rag_chain = ProRAGChain(vector_store, all_documents)
-    
-    # =====================================================
-    # 5. Launch UI
-    # =====================================================
-    logger.info("✅ System Ready. Launching UI...")
-    
+    if os.path.exists(index_path):
+        logger.info("📂 Found existing Vector DB. Loading...")
+        # Load existing index (Fast)
+        vector_store = VectorStoreManager.load_or_build(embed_model, None)
+    else:
+        logger.info("⚡ Building fresh Vector Index...")
+        # Build new index from documents (First run)
+        vector_store = VectorStoreManager.load_or_build(embed_model, documents=all_documents)
+
+    # 6. Initialize The Brain (RAG Chain)
+    logger.info("🧠 Initializing RAG Logic (Memory & Context)...")
+    # Now we pass 'all_documents' so BM25 Retriever can be initialized correctly
+    rag_chain = ProRAGChain(vector_store, all_documents=all_documents) 
+
+    # 7. Launch UI
+    logger.info("🎨 Launching MOI Assistant Interface...")
     app = create_app(rag_chain)
     
-    # Launch Configuration
-    # - server_name="0.0.0.0": Essential for exposing the port on IBEX/Docker/Colab
-    # - share=True: Creates a temporary public link for easy sharing/testing
+    # Check for logo existence to avoid UI warnings
+    logo_path = "ui/assets/moi_logo.png"
+    if not os.path.exists(logo_path):
+        logger.warning(f"⚠️ Logo not found at {logo_path}, UI will load without it.")
+        logo_path = None
+
+    # Launch Settings
     app.queue().launch(
-        server_name="0.0.0.0", 
+        server_name="0.0.0.0",  # Expose to network
         server_port=7860, 
-        share=True,
-        inline=False,
-        favicon_path="ui/moi_logo.png" if os.path.exists("ui/moi_logo.png") else None
+        share=True,             # Create public link
+        favicon_path=logo_path
     )
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        logger.info("🛑 Application stopped by user.")
+        logger.info("🛑 System shutting down by user.")
     except Exception as e:
-        logger.exception(f"❌ Critical Error: {e}")
+        logger.critical(f"❌ Fatal Error: {e}", exc_info=True)

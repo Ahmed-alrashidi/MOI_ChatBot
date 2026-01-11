@@ -1,6 +1,5 @@
---- Python & Environment ---
-
-pycache/
+# --- Python & Environment ---
+__pycache__/
 *.py[cod]
 *$py.class
 .env
@@ -8,32 +7,44 @@ pycache/
 env/
 venv/
 .ipynb_checkpoints/
+*.ipynb_checkpoints
 
---- Project Large Data (Don't push to GitHub) ---
-
-We want to keep the folder structure but not the files
-
-models/*
-!models/.gitkeep
-
-data/vector_db/*
-!data/vector_db/.gitkeep
-
-data/data_processed/*
-!data/data_processed/.gitkeep
-
-outputs/logs/.log
-outputs/audio/
-!outputs/audio/.gitkeep
-
-Optional: Ignore raw data if it's private
-
-data/Data_Master/*
-
-data/Data_chunks/*
-
---- IDE Settings ---
-
+# --- IDE Settings ---
 .vscode/
 .idea/
 *.swp
+.DS_Store
+
+# --- Project Large Data (Keep folder structure, ignore content) ---
+
+# Models
+models/*
+!models/.gitkeep
+
+# Vector Database
+data/vector_db/*
+!data/vector_db/.gitkeep
+
+# Processed Data
+data/data_processed/*
+!data/data_processed/.gitkeep
+
+# Outputs (Logs & Audio & Reports)
+outputs/logs/*
+!outputs/logs/.gitkeep
+
+outputs/audio/*
+!outputs/audio/.gitkeep
+
+outputs/benchmark_reports/*
+!outputs/benchmark_reports/.gitkeep
+
+# --- Raw Data (Private) ---
+data/Data_Master/*
+!data/Data_Master/.gitkeep
+
+data/Data_chunks/*
+!data/Data_chunks/.gitkeep
+
+# --- Ignore the Ground Truth file if it contains private info ---
+# data/ground_truth.csv

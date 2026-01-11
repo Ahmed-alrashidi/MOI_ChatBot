@@ -1,5 +1,8 @@
 import os
-from typing import Optional
+import uuid
+import time
+import glob
+import re  # Added for HTML cleanup
 from gtts import gTTS
 from langdetect import detect
 from config import Config
@@ -8,58 +11,71 @@ from utils.logger import setup_logger
 # Initialize module logger
 logger = setup_logger(__name__)
 
-def generate_speech(text: str) -> Optional[str]:
+def cleanup_old_audio(directory: str, max_age_seconds: int = 600):
     """
-    Converts the provided text into an audio file using Google Text-to-Speech API.
-    
-    Features:
-    - Automatic Language Detection (Switches accent between Arabic and English).
-    - Error Handling (Falls back gracefully if API fails).
-    - Directory Management (Ensures output path exists).
-
-    Args:
-        text (str): The string to be spoken.
-        
-    Returns:
-        Optional[str]: Absolute path to the generated MP3 file, or None if failed.
+    Removes audio files older than 'max_age_seconds' to prevent disk bloat.
+    Runs silently in the background.
     """
-    # 1. Validation: Don't process empty strings
-    if not text or not text.strip():
-        logger.warning("⚠️ TTS called with empty text. Skipping.")
-        return None
-        
     try:
-        # 2. Language Detection Logic
-        # We try to detect the language to match the voice accent (English vs Arabic).
+        if not os.path.exists(directory):
+            return
+
+        now = time.time()
+        files = glob.glob(os.path.join(directory, "*.mp3"))
+        for f in files:
+            if os.stat(f).st_mtime < now - max_age_seconds:
+                os.remove(f)
+                logger.debug(f"🧹 Deleted old audio file: {os.path.basename(f)}")
+    except Exception as e:
+        logger.warning(f"⚠️ Audio cleanup failed: {e}")
+
+def clean_html_tags(text: str) -> str:
+    """
+    Removes HTML tags (like <div dir='rtl'>) from text to prevent TTS reading them.
+    """
+    clean = re.sub(r'<[^>]+>', '', text)
+    return clean.strip()
+
+def generate_speech(text: str) -> str:
+    """
+    Generates TTS audio with unique filenames to support concurrent users.
+    Includes auto-cleanup mechanism and HTML tag stripping.
+    """
+    if not text or not text.strip():
+        return None
+
+    try:
+        # 1. Cleanup old files first (Self-Maintenance)
+        cleanup_old_audio(Config.AUDIO_DIR)
+        
+        # 2. Clean Text (Remove HTML tags from RAG output)
+        clean_text = clean_html_tags(text)
+        if not clean_text:
+            return None
+
+        # 3. Detect Language
         try:
-            lang = detect(text)
-        except Exception:
-            # Fallback to Arabic if detection fails (e.g., text is just numbers)
+            lang = detect(clean_text)
+        except:
             lang = 'ar'
             
-        # gTTS mapping: Strictly use 'ar' or 'en'. 
-        # Any other language (like 'ur' or 'fr') defaults to 'ar' for consistency in this context.
         tts_lang = 'en' if lang == 'en' else 'ar'
         
-        logger.info(f"🗣️ Generating TTS audio (Language: {tts_lang})...")
+        # 4. Generate Audio
+        # slow=False for faster, more natural response
+        tts = gTTS(text=clean_text, lang=tts_lang, slow=False)
         
-        # 3. Generate Audio Object
-        # slow=False makes the speech speed normal conversational pace
-        tts = gTTS(text=text, lang=tts_lang, slow=False)
+        # 5. Save with Unique ID (Critical for Multi-user)
+        filename = f"response_{uuid.uuid4().hex[:8]}.mp3"
+        output_path = os.path.join(Config.AUDIO_DIR, filename)
         
-        # 4. Save File
-        # We overwrite 'response.mp3' every time to save disk space.
-        # In a multi-user web app, this should use unique UUIDs, but for a local demo, this is fine.
-        output_path = os.path.join(Config.AUDIO_DIR, "response.mp3")
-        
-        # Ensure the directory exists before saving
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
         tts.save(output_path)
-        logger.info(f"✅ Audio saved to: {output_path}")
+        logger.info(f"✅ TTS Audio generated: {filename}")
         
         return output_path
         
     except Exception as e:
-        logger.error(f"❌ TTS Generation Error (Check Internet Connection): {e}")
+        logger.error(f"❌ TTS Generation failed: {e}")
         return None

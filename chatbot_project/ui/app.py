@@ -1,5 +1,9 @@
 import gradio as gr
-from typing import Optional, Tuple, List, Any
+import gc
+import torch
+from typing import List, Tuple, Optional, Any
+
+from config import Config
 from core.model_loader import ModelManager
 from ui.theme import MOI_CSS, HEADER_HTML
 from utils.logger import setup_logger
@@ -10,108 +14,142 @@ logger = setup_logger(__name__)
 
 def create_app(rag_chain: Any) -> gr.Blocks:
     """
-    Builds and returns the Gradio Blocks app.
-    Final Version: Tech Theme + Polyglot + TTS (Manual Play) + Bug Fixes.
+    Builds the Gradio Application with A100 optimizations.
+    Integrates: RAG v4.0, Whisper ASR, and MOI Theme.
     """
     
     # --- Logic Handlers ---
-    
-    def chat_response(message: str, history: List[Tuple], audio_file: Optional[str]) -> Tuple[List[Tuple], Optional[str]]:
-        user_display = message
+
+    def process_query(message: str, history: List[Tuple[str, str]], audio_path: Optional[str]):
+        """
+        Main Handler: Audio -> Text -> RAG -> Response -> TTS
+        Returns: [History, Audio_Out, Msg_Box, Audio_In_Reset]
+        """
+        user_text = message
         
-        # 1. Handle Audio Input
-        if audio_file:
-            logger.info("🎤 Audio input detected. Processing with Whisper...")
+        # 1. Handle Audio Input (Whisper A100)
+        if audio_path:
+            logger.info("🎤 Audio detected. Transcribing with Whisper...")
             try:
                 asr_pipe = ModelManager.get_asr_pipeline()
                 if asr_pipe:
-                    out = asr_pipe(audio_file)
-                    text = out["text"].strip()
-                    message = text
-                    user_display = f"🎤 {text}"
-                    logger.info(f"📝 Transcribed text: {text}")
+                    # Using the optimized pipeline
+                    out = asr_pipe(audio_path)
+                    transcribed = out["text"].strip()
+                    if transcribed:
+                        user_text = transcribed
+                        logger.info(f"📝 Transcribed: {user_text}")
                 else:
-                    logger.error("❌ Whisper model not loaded.")
+                    logger.warning("⚠️ Whisper not loaded. Using text only.")
             except Exception as e:
-                logger.error(f"❌ Audio processing error: {e}")
+                logger.error(f"❌ ASR Error: {e}")
+                # Don't overwrite text if ASR fails, maybe user typed something
+                if not user_text: 
+                    user_text = "عذراً، لم أتمكن من سماع الصوت بوضوح."
 
-        # 2. Validate Input
-        if not message or not message.strip():
-            return history, None
+        # Hygiene check: If no text and no audio transcription
+        if not user_text.strip():
+            # Return current state without changes, but clear inputs
+            return history, None, "", None
 
-        # 3. Generate Response
-        if not rag_chain:
-            response = "⚠️ System Error: AI Brain not loaded."
-        else:
-            try:
-                response = rag_chain.answer(message, history=history)
-            except Exception as e:
-                logger.error(f"❌ RAG Inference failed: {e}")
-                response = f"❌ Error: {str(e)}"
-
-        # 4. Update History
-        history.append((user_display, response))
+        # 2. RAG Generation (The Heavy Lifting)
+        # Note: rag_chain handles memory summarization internally based on 'history'
+        bot_response = rag_chain.answer(user_text, history)
         
-        # 5. Generate TTS
-        # Clean HTML tags for speech
-        clean_text = response.replace("<div dir='rtl' style='text-align: right;'>", "") \
-                             .replace("<div dir='ltr' style='text-align: left;'>", "") \
-                             .replace("</div>", "")
-        
-        audio_path = generate_speech(clean_text)
-        
-        return history, audio_path
+        # 3. Text-to-Speech (TTS)
+        # Generate audio file for the response
+        audio_out_path = generate_speech(bot_response)
 
-    # --- Helper Functions for UI Actions ---
-    
-    def clean_after_send():
-        """Clears input box and audio input only (Keep chat history)."""
-        return "", None
-
-    def full_reset():
-        """Clears EVERYTHING: Chat, Input, Audio Input, and TTS Player."""
-        return [], "", None, None
-
-    # --- UI Layout ---
-    with gr.Blocks(theme=gr.themes.Soft(), css=MOI_CSS, title="MOI Universal Assistant") as demo:
+        # 4. Update UI
+        updated_history = history + [(user_text, bot_response)]
         
+        # Return: 
+        # 1. Updated Chat History
+        # 2. Generated Audio Path (Response)
+        # 3. Clear Text Input ("")
+        # 4. Clear Audio Input (None) -> Prevents re-sending old audio
+        return updated_history, audio_out_path, "", None
+
+    def clear_session():
+        """Hard reset for memory and UI."""
+        # Force memory cleanup on GPU
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
+        # Return empty states for: Chatbot, TTS Player, Text Input, Audio Input
+        return [], None, "", None
+
+    # --- UI Layout Construction ---
+    with gr.Blocks(css=MOI_CSS, title="MOI Smart Assistant (A100 Powered)") as demo:
+        
+        # 1. Header (HTML/CSS)
         gr.HTML(HEADER_HTML)
-
-        with gr.Group():
-            chatbot = gr.Chatbot(label="MOI Smart Assistant", height=500, rtl=True)
+        
+        # 2. Main Chat Interface
+        with gr.Column(elem_classes="chat-container"):
+            chatbot = gr.Chatbot(
+                label="MOI Assistant",
+                elem_id="moi-chatbot",
+                height=550,
+                show_label=False,
+                rtl=True, # Native Arabic Support
+                avatar_images=(None, "ui/assets/moi_logo.png"), # Bot Avatar
+                show_copy_button=True
+            )
             
-            # TTS Player
-            # ✅ تم التحديث: تعطيل التشغيل التلقائي (autoplay=False)
-            tts_player = gr.Audio(label="🔊 قراءة الإجابة / Read Response", autoplay=False, visible=True, type="filepath")
+            # TTS Player (Hidden initially, appears with response)
+            tts_player = gr.Audio(
+                label="🔊 قراءة الرد",
+                interactive=False, 
+                autoplay=False, # User choice to play
+                visible=True
+            )
 
-            with gr.Row():
-                msg = gr.Textbox(
-                    show_label=False, 
-                    container=False, 
-                    scale=4, 
-                    placeholder="تفضل بطرح سؤالك بأي لغة... / Ask here...", 
-                    autofocus=True
+        # 3. Input Controls
+        with gr.Row(elem_classes="input-row"):
+            with gr.Column(scale=4):
+                msg_input = gr.Textbox(
+                    show_label=False,
+                    placeholder="اكتب سؤالك هنا أو استخدم الميكروفون... / Ask here...",
+                    container=False,
+                    lines=1,
+                    max_lines=3,
+                    autofocus=True,
+                    rtl=True
                 )
-                submit_btn = gr.Button("🚀 إرسال / Send", variant="primary", scale=1)
+            
+            with gr.Column(scale=1, min_width=100):
+                submit_btn = gr.Button("🚀 إرسال", variant="primary", size="lg")
 
+        # 4. Utility Controls (Audio & Clear)
+        with gr.Accordion("أدوات إضافية (صوت / مسح)", open=False):
             with gr.Row():
-                with gr.Column(scale=1):
-                    audio_input = gr.Audio(source="microphone", type="filepath", label="🎙️ Voice Input")
-                
-                with gr.Column(scale=0.2):
-                    clear_btn = gr.Button("🗑️ مسح / Clear", variant="secondary")
+                audio_input = gr.Audio(
+                    source="microphone", 
+                    type="filepath", 
+                    label="تسجيل صوتي",
+                    show_download_button=False
+                )
+                clear_btn = gr.Button("🗑️ مسح المحادثة", variant="secondary")
 
         # --- Event Wiring ---
+        
+        # Define Input/Output list for cleaner code
+        app_inputs = [msg_input, chatbot, audio_input]
+        app_outputs = [chatbot, tts_player, msg_input, audio_input] # Added audio_input to outputs to clear it
 
-        # 1. Submit via Enter Key
-        msg.submit(chat_response, [msg, chatbot, audio_input], [chatbot, tts_player]) \
-           .then(clean_after_send, None, [msg, audio_input])
+        # Enter Key on Textbox
+        msg_input.submit(process_query, inputs=app_inputs, outputs=app_outputs)
         
-        # 2. Submit via Button
-        submit_btn.click(chat_response, [msg, chatbot, audio_input], [chatbot, tts_player]) \
-                  .then(clean_after_send, None, [msg, audio_input])
+        # Send Button Click
+        submit_btn.click(process_query, inputs=app_inputs, outputs=app_outputs)
         
-        # 3. Full Reset
-        clear_btn.click(full_reset, None, [chatbot, msg, audio_input, tts_player])
+        # Clear Button
+        clear_btn.click(
+            clear_session,
+            inputs=[],
+            outputs=[chatbot, tts_player, msg_input, audio_input]
+        )
 
     return demo

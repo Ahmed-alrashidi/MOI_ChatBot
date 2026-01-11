@@ -5,9 +5,11 @@ import os
 import sys
 import re
 import collections
-from typing import List, Dict
+import torch
+from typing import List, Dict, Any
 from tqdm import tqdm
 from sklearn.metrics.pairwise import cosine_similarity
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # Import Project Modules
 from config import Config
@@ -20,120 +22,189 @@ from data.ingestion import DataIngestor
 # Setup Logger
 logger = setup_logger("Global_Benchmark")
 
+# --- JUDGE CONFIGURATION ---
+# We use Qwen-2.5-14B because it is SOTA in multi-lingual reasoning (AR, ES, RU, DE, FR)
+JUDGE_MODEL_ID = "Qwen/Qwen2.5-14B-Instruct"
+
+# Prompt in English to ensure the Judge follows instructions perfectly, 
+# even when evaluating Arabic/Spanish content.
+JUDGE_SYS_PROMPT = """You are an impartial, expert AI evaluator.
+Your task is to evaluate the quality of the "Proposed Answer" compared to the "Ground Truth" based on the Question.
+
+Criteria:
+1. Accuracy: Is the information correct?
+2. Completeness: Is the answer full?
+3. Language: Is it in the correct target language?
+
+Score (1-5):
+1: Wrong / Irrelevant.
+3: Partially correct.
+5: Perfect / Accurate.
+
+Question: {question}
+Ground Truth: {truth}
+Proposed Answer: {prediction}
+
+Output format:
+Score: [1-5]
+Reason: [Short explanation]
+"""
+
+class JudgeModel:
+    """
+    A dedicated wrapper for the Judge LLM (Qwen-2.5).
+    Loaded separately to ensure unbiased evaluation.
+    """
+    def __init__(self):
+        logger.info(f"⚖️ Loading Specialized Judge Model: {JUDGE_MODEL_ID}...")
+        
+        # ✅ Enforce loading from the specific directory requested
+        cache_path = Config.MODELS_DIR
+        logger.info(f"📂 Target Model Path: {cache_path}")
+        
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                JUDGE_MODEL_ID,
+                cache_dir=cache_path,
+                trust_remote_code=True
+            )
+            # Load in bfloat16 to fit on A100 alongside ALLaM
+            self.model = AutoModelForCausalLM.from_pretrained(
+                JUDGE_MODEL_ID,
+                torch_dtype=torch.bfloat16,
+                device_map="auto", 
+                trust_remote_code=True,
+                cache_dir=cache_path
+            )
+            logger.info("✅ Judge Model Loaded Successfully.")
+        except Exception as e:
+            logger.error(f"❌ Failed to load Judge Model: {e}")
+            raise e
+
+    def evaluate(self, question: str, truth: str, prediction: str) -> Dict[str, Any]:
+        """
+        Runs the evaluation prompt through Qwen.
+        """
+        prompt = JUDGE_SYS_PROMPT.format(
+            question=question,
+            truth=truth,
+            prediction=prediction
+        )
+        
+        messages = [
+            {"role": "system", "content": "You are a strict AI judge."},
+            {"role": "user", "content": prompt}
+        ]
+        
+        text_input = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        
+        inputs = self.tokenizer([text_input], return_tensors="pt").to(self.model.device)
+        
+        with torch.no_grad():
+            generated_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=150,
+                temperature=0.1, # Low temp for consistency
+                do_sample=False
+            )
+            
+        generated_ids = [
+            output_ids[len(input_ids):] for input_ids, output_ids in zip(inputs.input_ids, generated_ids)
+        ]
+        response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        
+        return self._parse_response(response)
+
+    def _parse_response(self, text: str) -> Dict[str, Any]:
+        # Robust parsing using Regex
+        score_match = re.search(r"Score\s*[:\-]\s*(\d)", text, re.IGNORECASE)
+        reason_match = re.search(r"Reason\s*[:\-]\s*(.+)", text, re.IGNORECASE | re.DOTALL)
+        
+        score = 3
+        reason = "Parse Error"
+        
+        if score_match:
+            score = int(score_match.group(1))
+        
+        if reason_match:
+            reason = reason_match.group(1).strip()
+        else:
+            # Fallback: take part of the text
+            reason = text[:150].replace("\n", " ").strip()
+            
+        return {"score": score, "reason": reason}
+
+
 class RAGBenchmark:
     """
-    Advanced Multi-Lingual Benchmarking Suite for MOI Chatbot (v4.0).
-    
-    New Metrics:
-    1. Response Fidelity (Exact Match - EM)
-    2. Semantic Similarity (Cosine)
-    3. Keyword Overlap (F1 Score)
-    4. Hallucination Rate (Based on low semantic confidence)
-    5. Performance Breakdown by Language (AR, EN, FR, ZH, DE, HI)
+    Advanced Multi-Lingual Benchmarking Suite for MOI Chatbot (v5.0 - Expert Judge).
     """
     
     def __init__(self):
         self.rag_chain = None
         self.embed_model = None
-        self.success_threshold = 0.75  # Threshold to consider an answer "Factually Correct"
+        self.judge_model = None 
+        self.success_threshold = 0.75
         
     def initialize_system(self):
         logger.info("⚙️ Initializing System for Global Benchmarking...")
+        
+        # 1. Load Main System Models (ALLaM + Embeddings)
         self.embed_model = ModelManager.get_embedding_model()
+        
+        # 2. Load Data
         ingestor = DataIngestor()
         docs = ingestor.load_and_process()
-        
-        if not docs:
-            raise ValueError("No documents found! Verification aborted.")
+        if not docs: raise ValueError("No documents found!")
             
         vector_store = VectorStoreManager.load_or_build(self.embed_model, docs)
-        self.rag_chain = ProRAGChain(vector_store, docs)
-        logger.info("✅ System Ready.")
+        self.rag_chain = ProRAGChain(vector_store, all_documents=docs)
+        
+        # 3. Load The Judge (New Step)
+        # This will download Qwen (~28GB) to your specified folder
+        self.judge_model = JudgeModel()
+        
+        logger.info("✅ Full System & Judge Ready.")
 
-    # --- Metric Calculation Helpers ---
-
+    # --- Metrics Helpers ---
     def normalize_text(self, s: str) -> str:
-        """Lower text and remove punctuation, articles and extra whitespace."""
-        def remove_articles(text):
-            return re.sub(r'\b(a|an|the)\b', ' ', text)
-        def white_space_fix(text):
-            return ' '.join(text.split())
+        def remove_articles(text): return re.sub(r'\b(a|an|the)\b', ' ', text)
+        def white_space_fix(text): return ' '.join(text.split())
         def remove_punc(text):
             exclude = set('!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~')
             return ''.join(ch for ch in text if ch not in exclude)
-        def lower(text):
-            return text.lower()
-        return white_space_fix(remove_articles(remove_punc(lower(s))))
+        return white_space_fix(remove_articles(remove_punc(s.lower())))
 
     def calculate_exact_match(self, generated: str, reference: str) -> int:
-        """Returns 1 if the normalized text matches exactly, else 0."""
         return int(self.normalize_text(generated) == self.normalize_text(reference))
 
     def calculate_f1(self, generated: str, reference: str) -> float:
-        """Calculates word overlap F1 score."""
         pred_tokens = self.normalize_text(generated).split()
         truth_tokens = self.normalize_text(reference).split()
-        
-        if len(pred_tokens) == 0 or len(truth_tokens) == 0:
-            return int(pred_tokens == truth_tokens)
-        
+        if len(pred_tokens) == 0 or len(truth_tokens) == 0: return int(pred_tokens == truth_tokens)
         common_tokens = collections.Counter(pred_tokens) & collections.Counter(truth_tokens)
         num_same = sum(common_tokens.values())
-        
-        if num_same == 0:
-            return 0.0
-        
+        if num_same == 0: return 0.0
         precision = 1.0 * num_same / len(pred_tokens)
         recall = 1.0 * num_same / len(truth_tokens)
-        f1 = (2 * precision * recall) / (precision + recall)
-        return f1
+        return (2 * precision * recall) / (precision + recall)
 
     def calculate_semantic_score(self, generated: str, reference: str) -> float:
-        """Computes Cosine Similarity using BGE-M3 Embeddings."""
-        if not generated or not reference:
-            return 0.0
+        if not generated or not reference: return 0.0
         vec_gen = self.embed_model.embed_query(generated)
         vec_ref = self.embed_model.embed_query(reference)
-        vec_gen = np.array(vec_gen).reshape(1, -1)
-        vec_ref = np.array(vec_ref).reshape(1, -1)
-        score = cosine_similarity(vec_gen, vec_ref)[0][0]
-        return float(score)
+        return float(cosine_similarity(np.array(vec_gen).reshape(1, -1), np.array(vec_ref).reshape(1, -1))[0][0])
 
-    def run_test(self, test_file_path: str = "data/test_set_global.csv"):
-        # Force fresh test set creation
-        if os.path.exists(test_file_path):
-            os.remove(test_file_path)
-
-        logger.info(f"📝 Generating Multi-Lingual Test Dataset...")
-        
-        # --- Multi-Lingual Dataset (Same Fact, Different Languages) ---
-        # Fact: Passport renewal fee for 10 years is 600 SAR.
-        data_records = [
-            # Arabic (The Core)
-            {"lang": "Arabic", "question": "كم سعر تجديد جواز السفر 10 سنوات؟", "ground_truth": "سعر تجديد جواز السفر السعودي لمدة عشر سنوات هو 600 ريال سعودي."},
-            {"lang": "Arabic", "question": "كيف اسدد مخالفاتي المرورية؟", "ground_truth": "يمكن تسديد المخالفات المرورية عبر منصة أبشر من خلال الخدمات الإلكترونية."},
+    def run_test(self, test_file_path: str = "data/ground_truth.csv"):
+        logger.info(f"📝 Loading Test Dataset from {test_file_path}...")
+        if not os.path.exists(test_file_path):
+            logger.error(f"❌ Missing file: {test_file_path}")
+            return
             
-            # English
-            {"lang": "English", "question": "What is the fee for renewing a passport for 10 years?", "ground_truth": "The fee for renewing the Saudi passport for 10 years is 600 SAR."},
-            
-            # French
-            {"lang": "French", "question": "Quel est le tarif de renouvellement du passeport pour 10 ans ?", "ground_truth": "Les frais de renouvellement du passeport saoudien pour 10 ans sont de 600 SAR."},
-            
-            # Chinese (Simplified)
-            {"lang": "Chinese", "question": "续签护照10年的费用是多少？", "ground_truth": "续签沙特护照10年的费用为600沙特里亚尔。"},
-            
-            # German
-            {"lang": "German", "question": "Wie hoch ist die Gebühr für die Erneuerung des Reisepasses für 10 Jahre?", "ground_truth": "Die Gebühr für die Erneuerung des saudischen Reisepasses für 10 Jahre beträgt 600 SAR."},
-            
-            # Hindi
-            {"lang": "Hindi", "question": "10 साल के लिए पासपोर्ट नवीनीकरण शुल्क क्या है?", "ground_truth": "10 वर्षों के लिए सऊदी पासपोर्ट के नवीनीकरण का शुल्क 600 रियाल है।"}
-        ]
-        
-        df = pd.DataFrame(data_records)
-        df.to_csv(test_file_path, index=False)
-        
-        # Start Testing
-        logger.info(f"🚀 Running Global Benchmark on {len(df)} Scenarios...")
+        df = pd.read_csv(test_file_path)
+        logger.info(f"🚀 Running Benchmark on {len(df)} Scenarios...")
         
         results = []
         
@@ -142,77 +213,64 @@ class RAGBenchmark:
             truth = row['ground_truth']
             lang = row['lang']
             
+            # 1. System Answer
             start_time = time.time()
             try:
-                # Generate Answer
                 generated_answer = self.rag_chain.answer(question)
-                # Cleanup UI tags
-                clean_answer = generated_answer.replace("<div dir='rtl' style='text-align: right;'>", "").replace("</div>", "").replace("<div dir='ltr' style='text-align: left;'>", "")
+                clean_answer = re.sub(r'<[^>]+>', '', generated_answer).strip()
             except Exception as e:
                 clean_answer = "Error"
-                logger.error(f"Error on: {question}")
-                
-            end_time = time.time()
-            latency = end_time - start_time
+                logger.error(f"System Error: {e}")
+            latency = time.time() - start_time
             
-            # --- Metrics Calculation ---
+            # 2. Metrics
             semantic_acc = self.calculate_semantic_score(clean_answer, truth)
             exact_match = self.calculate_exact_match(clean_answer, truth)
             f1_score = self.calculate_f1(clean_answer, truth)
             
-            # Hallucination Logic: If semantic accuracy is low, we consider it a hallucination/error
-            is_hallucination = 1 if semantic_acc < self.success_threshold else 0
+            # 3. Judge Evaluation (Using Qwen)
+            judge_result = self.judge_model.evaluate(question, truth, clean_answer)
+            llm_score = judge_result["score"]
+            llm_reason = judge_result["reason"]
+
+            # Hallucination Logic
+            # Adjusted: If semantic is extremely low OR Judge says 1 (Complete fail)
+            is_hallucination = 1 if (semantic_acc < 0.70 or llm_score == 1) else 0
             
             results.append({
                 "language": lang,
                 "question": question,
                 "generated_answer": clean_answer,
                 "ground_truth": truth,
-                "semantic_accuracy": round(semantic_acc, 4),
+                "judge_score": llm_score,
+                "judge_reason": llm_reason,
+                "semantic_score": round(semantic_acc, 4),
                 "exact_match": exact_match,
                 "f1_score": round(f1_score, 4),
                 "hallucination": is_hallucination,
-                "latency_seconds": round(latency, 4)
+                "latency": round(latency, 4)
             })
             
         results_df = pd.DataFrame(results)
         
-        # --- Aggregated Report ---
-        avg_semantic = results_df["semantic_accuracy"].mean()
-        avg_em = results_df["exact_match"].mean()
-        avg_f1 = results_df["f1_score"].mean()
-        avg_hallucination = results_df["hallucination"].mean()
-        avg_lat = results_df["latency_seconds"].mean()
-        
+        # Report
         print("\n" + "="*60)
-        print(f"📊 GLOBAL BENCHMARK REPORT (v4.0)")
+        print(f"📊 GLOBAL BENCHMARK REPORT (v5.0 - Expert Judge Qwen)")
         print("="*60)
-        print(f"✅ Total Scenarios:         {len(results_df)}")
-        print(f"🧠 Semantic Similarity:     {avg_semantic:.2%} (Target: >85%)")
-        print(f"🎯 Response Fidelity (EM):  {avg_em:.2%}")
-        print(f"🔠 Keyword Overlap (F1):    {avg_f1:.2%}")
-        print(f"👻 Hallucination Rate:      {avg_hallucination:.2%} (Target: <10%)")
-        print(f"⏱️ Avg Latency:             {avg_lat:.2f}s")
+        print(f"✅ Total Scenarios:     {len(results_df)}")
+        print(f"⚖️ Judge Score:         {results_df['judge_score'].mean():.2f} / 5.0")
+        print(f"🧠 Semantic Score:      {results_df['semantic_score'].mean():.2%}")
+        print(f"👻 Hallucination Rate:  {results_df['hallucination'].mean():.2%}")
         print("-" * 60)
         
-        # --- Performance by Language ---
-        print("\n🌍 Performance by Query Language:")
-        lang_group = results_df.groupby("language")[["semantic_accuracy", "latency_seconds", "hallucination"]].mean()
-        # Rename for display
-        lang_group = lang_group.rename(columns={
-            "semantic_accuracy": "Accuracy", 
-            "latency_seconds": "Latency (s)",
-            "hallucination": "Hallucination Rate"
-        })
-        print(lang_group)
-        print("="*60)
+        if "language" in results_df.columns:
+            print("\n🌍 Performance by Language:")
+            print(results_df.groupby("language")[["judge_score", "semantic_score", "latency"]].mean())
         
-        # Save Detailed CSV
-        output_dir = os.path.join(Config.OUTPUTS_DIR, "benchmark_reports")
-        os.makedirs(output_dir, exist_ok=True)
-        report_path = os.path.join(output_dir, "global_benchmark_results.csv")
-        results_df.to_csv(report_path, index=False, encoding='utf-8-sig')
-        logger.info(f"📄 Detailed report saved to: {report_path}")
+        # Save
+        out_path = os.path.join(Config.OUTPUTS_DIR, "benchmark_reports", "final_benchmark_qwen_judge.csv")
+        results_df.to_csv(out_path, index=False, encoding='utf-8-sig')
+        logger.info(f"📄 Report saved to: {out_path}")
 
 if __name__ == "__main__":
     try:
@@ -220,4 +278,4 @@ if __name__ == "__main__":
         benchmarker.initialize_system()
         benchmarker.run_test()
     except KeyboardInterrupt:
-        print("\n🛑 Benchmark stopped by user.")
+        print("\n🛑 Stopped.")

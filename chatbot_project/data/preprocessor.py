@@ -1,10 +1,9 @@
 import os
 import pandas as pd
-from typing import List
+from typing import List, Optional
 from utils.text_utils import normalize_arabic, soft_clean
 
-# Mapping dictionary to convert file prefixes (e.g., 'jawazat') to official Arabic Sector names.
-# This ensures consistent naming across the application regardless of the input filename.
+# Mapping dictionary to convert file prefixes to official Arabic Sector names.
 SECTOR_MAP = {
     "jawazat": "الجوازات",
     "muroor": "المرور",
@@ -21,73 +20,63 @@ SECTOR_MAP = {
 def infer_sector(filepath: str) -> str:
     """
     Extracts and maps the sector name from the CSV filename.
+    Handles case-insensitivity and ensures a default fallback.
+    """
+    try:
+        base = os.path.basename(filepath).lower()
+        # Extract the first part of the filename (e.g., 'jawazat' from 'jawazat_master.csv')
+        key = base.split("_")[0]
+        return SECTOR_MAP.get(key, "قطاع حكومي عام")
+    except Exception:
+        return "غير محدد"
+
+def clean_dataframe(df: pd.DataFrame, cols_to_clean: Optional[List[str]] = None) -> pd.DataFrame:
+    """
+    Applies text cleaning pipeline to specific columns in the DataFrame.
+    Optimized for memory efficiency by modifying in-place where possible.
     
-    It expects filenames in the format 'prefix_rest.csv' (e.g., 'jawazat_master.csv').
-    If the prefix isn't found in the map, it returns 'Non-specified'.
-
-    Args:
-        filepath (str): The full path to the input CSV file.
-
-    Returns:
-        str: The official Arabic name of the sector.
+    Updated to accept 'cols_to_clean' argument to match ingestion.py calls.
     """
-    base = os.path.basename(filepath).lower()
-    # Extract the first part of the filename before the underscore
-    key = base.split("_")[0]
-    return SECTOR_MAP.get(key, "غير محدد")
-
-def clean_dataframe(df: pd.DataFrame, columns_to_clean: List[str]) -> pd.DataFrame:
-    """
-    Iterates over specific columns in a DataFrame and applies text normalization.
+    # If explicit columns are not provided, fall back to this comprehensive list
+    if cols_to_clean is None:
+        cols_to_clean = [
+            "service_title_ar", "description_full", "beneficiaries", 
+            "fees", "conditions", "chunk_text", "chunk_title"
+        ]
     
-    It uses helper functions to:
-    1. Remove noise (soft_clean).
-    2. Normalize Arabic characters (unify Alef, Ya, Ta-Marbuta, etc.).
-
-    Args:
-        df (pd.DataFrame): The input dataframe.
-        columns_to_clean (List[str]): List of column names to apply cleaning to.
-
-    Returns:
-        pd.DataFrame: The dataframe with cleaned text columns.
-    """
-    for col in columns_to_clean:
+    for col in cols_to_clean:
         if col in df.columns:
-            # Apply cleaning pipeline: ensure string -> soft clean -> normalize arabic
+            # Drop NaNs to prevent errors during mapping
+            df[col] = df[col].fillna("")
+            # Apply cleaning: Ensure String -> Soft Clean -> Normalize Arabic
             df[col] = df[col].astype(str).map(soft_clean).map(normalize_arabic)
+            
     return df
 
 def build_master_text_representation(row: pd.Series) -> str:
     """
-    Constructs a single, rich-text string from multiple columns of a Master record.
-    
-    This function flattens the structured data (title, description, fees, etc.) into 
-    one context string. This is crucial for Embedding models to capture the 
-    full context of a service in a single vector.
-
-    Args:
-        row (pd.Series): A single row from the Master DataFrame.
-
-    Returns:
-        str: A concatenated string combining all relevant fields with separators.
+    Constructs a 'Semantic Rich Text' representation for Embedding.
+    Uses natural language connectors to help the Embedding Model (BGE-M3) understand context.
     """
-    parts = [
-        f"اسم الخدمة: {row.get('service_title_ar', '')}",
-        f"الوصف: {row.get('description_full', '')}"
-    ]
+    # Base Sentence
+    title = row.get('service_title_ar', 'خدمة غير معنونة')
+    desc = row.get('description_full', '')
     
-    # Conditionally add optional fields if they exist and are not empty
-    if row.get("beneficiaries"): 
-        parts.append(f"المستفيدون: {row['beneficiaries']}")
-        
-    if row.get("fees"): 
-        parts.append(f"الرسوم: {row['fees']}")
-        
-    if row.get("conditions"): 
-        parts.append(f"الشروط: {row['conditions']}")
-        
-    if row.get("access_path"): 
-        parts.append(f"طريقة الوصول: {row['access_path']}")
+    # Natural Language Construction
+    text_parts = [f"خدمة {title}: {desc}"]
     
-    # Join all parts with a separator for clear distinction in the text chunk
-    return " | ".join(parts)
+    # Add details only if they contain meaningful content (checking length > 2 filters out "nan" or "-")
+    if row.get("beneficiaries") and len(str(row["beneficiaries"])) > 2: 
+        text_parts.append(f"الفئات المستفيدة من الخدمة هي: {row['beneficiaries']}.")
+        
+    if row.get("fees") and len(str(row["fees"])) > 1: 
+        text_parts.append(f"تبلغ رسوم الخدمة: {row['fees']}.")
+        
+    if row.get("conditions") and len(str(row["conditions"])) > 2: 
+        text_parts.append(f"الشروط والمتطلبات تشمل: {row['conditions']}.")
+        
+    if row.get("access_path") and len(str(row["access_path"])) > 2: 
+        text_parts.append(f"طريقة الوصول للخدمة عبر أبشر: {row['access_path']}.")
+
+    # Join with newlines to separate distinct semantic blocks
+    return "\n".join(text_parts)

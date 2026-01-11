@@ -2,101 +2,102 @@ import re
 import unicodedata
 from typing import Optional
 
-# --- Constants & Regex Patterns ---
+# --- 1. Pre-compiled Regex Patterns (Performance Optimization) ---
+# Compiling patterns globally prevents re-compilation on every function call.
 
-# Regex for Arabic Diacritics (Tashkeel)
-# Matches: Fatha, Damma, Kasra, Sukun, Shadda, Tanween, etc.
+# Arabic Diacritics (Tashkeel)
 ARABIC_DIAC = re.compile(r"[\u0617-\u061A\u064B-\u0652\u0670\u06D6-\u06ED]")
+# Tatweel (Kashida) - Critical for normalization (e.g., "الـــسلام" -> "السلام")
+TATWEEL = re.compile(r"\u0640")
+# Zero-Width Characters (Invisible artifacts from PDFs/Web)
+ZERO_WIDTH = re.compile(r"[\u200B\u200C\u200D\u200E\u200F\uFEFF]")
+
+# Normalization Helpers
+ALEF_PAT = re.compile(r"[أإآٱ]")
+WHITESPACE = re.compile(r"\s+")
+
+# Soft Clean Patterns
+MD_BOLD_ITALIC = re.compile(r"\*{1,2}(.*?)\*{1,2}")
+MD_UNDERSCORE = re.compile(r"_+(.*?)_+")
+MD_HEADER = re.compile(r"#+\s*")
+CITATION = re.compile(r"\[cite[^\]]*\]")
 
 def normalize_arabic(text: Optional[str]) -> str:
     """
-    Normalizes Arabic text to standard forms to improve retrieval recall (Search).
+    Advanced Arabic Normalization Pipeline.
+    Optimized for Search Recall & Vector Embedding alignment.
     
     Operations:
     1. Unicode Normalization (NFC).
-    2. Remove Diacritics (Tashkeel).
-    3. Unify Alef forms (أ, إ, آ -> ا).
-    4. Unify Ya/Alef Maqsura (ى -> ي).
-    5. Unify Taa Marbuta (ة -> ه).
-    
-    Args:
-        text (str): Input text containing Arabic characters.
-        
-    Returns:
-        str: Normalized text string.
+    2. Remove Zero-Width chars.
+    3. Remove Diacritics (Tashkeel).
+    4. Remove Tatweel (Kashida).
+    5. Unify Alef (أ, إ, آ -> ا).
+    6. Unify Ya/Alef Maqsura (ى -> ي).
+    7. Unify Taa Marbuta (ة -> ه).
     """
     if not isinstance(text, str):
         return ""
     
-    # 1. Normalize Unicode characters to NFC form (standard representation)
+    # 1. Unicode NFC
     text = unicodedata.normalize("NFC", text)
     
-    # 2. Remove Diacritics (Tashkeel) - Critical for embedding consistency
+    # 2. Remove Invisible Characters (ZWNJ, etc.)
+    text = ZERO_WIDTH.sub("", text)
+    
+    # 3. Remove Diacritics
     text = ARABIC_DIAC.sub("", text)
     
-    # 3. Unify Alef forms (Hamza removal)
-    # Example: "الإجراءات" -> "الاجراءات"
-    text = re.sub(r"[أإآٱ]", "ا", text)
+    # 4. Remove Tatweel (Kashida) -- NEW & CRITICAL
+    text = TATWEEL.sub("", text)
     
-    # 4. Unify Ya forms
-    # Example: "مستشفى" -> "مستشفي" (Common typing mismatch handling)
+    # 5. Unify Alef
+    text = ALEF_PAT.sub("ا", text)
+    
+    # 6. Unify Ya (ى -> ي)
     text = text.replace("ى", "ي")
     
-    # 5. Unify Taa Marbuta
-    # Example: "خدمة" -> "خدمه" (Users often omit the dots)
+    # 7. Unify Taa Marbuta (ة -> ه)
     text = text.replace("ة", "ه")
     
-    # 6. Collapse multiple whitespaces into one
-    text = re.sub(r"\s+", " ", text)
+    # 8. Collapse Whitespace
+    text = WHITESPACE.sub(" ", text)
     
     return text.strip()
 
 def soft_clean(text: Optional[str]) -> str:
     """
-    Cleans raw text from formatting artifacts before embedding.
-    Removes Markdown syntax, citations, and excessive whitespace.
-    
-    Args:
-        text (str): Raw text possibly containing Markdown or citations.
-        
-    Returns:
-        str: Clean plain text.
+    Cleans text from formatting artifacts (Markdown, Citations, etc.).
+    Uses pre-compiled patterns for speed.
     """
     if not isinstance(text, str):
         return ""
     
-    # Remove Markdown Bold/Italic (*word* or **word**)
-    text = re.sub(r"\*{1,2}(.*?)\*{1,2}", r"\1", text)
+    # Markdown Cleanup
+    text = MD_BOLD_ITALIC.sub(r"\1", text)
+    text = MD_UNDERSCORE.sub(r"\1", text)
+    text = MD_HEADER.sub("", text)
     
-    # Remove underscores (often used for formatting)
-    text = re.sub(r"_+(.*?)_+", r"\1", text)
+    # Remove Citations
+    text = CITATION.sub("", text)
     
-    # Remove Markdown headers (# Header)
-    text = re.sub(r"#+\s*", "", text)
-    
-    # Remove citations patterns like [1], [cite], etc.
-    text = re.sub(r"\[cite[^\]]*\]", "", text)
-    
-    # Collapse multiple spaces
-    text = re.sub(r"\s+", " ", text)
+    # Collapse Whitespace
+    text = WHITESPACE.sub(" ", text)
     
     return text.strip()
 
 def is_arabic(text: Optional[str]) -> bool:
     """
-    Heuristic check to determine if text contains Arabic characters.
-    Used for language detection logic.
+    Heuristic check: Returns True if text contains Arabic characters.
     """
     if not isinstance(text, str):
         return False
-    # Check unicode range for Arabic
     return bool(re.search(r'[\u0600-\u06FF]', text))
 
 def looks_english(text: Optional[str]) -> bool:
     """
-    Heuristic check to determine if text contains English (Latin) characters.
+    Heuristic check: Returns True if text contains basic Latin characters.
     """
     if not isinstance(text, str):
         return False
-    # Check regex for basic Latin alphabet
     return bool(re.search(r"[A-Za-z]", text))
