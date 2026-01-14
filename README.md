@@ -1,4 +1,4 @@
-# MOI Universal Assistant (الذكي الشامل المساعد)
+# MOI Universal Assistant
 
 > **An enterprise-grade AI conversational agent designed for the Ministry of Interior (MOI).**
 
