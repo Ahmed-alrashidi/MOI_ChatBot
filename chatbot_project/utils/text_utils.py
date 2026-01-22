@@ -1,3 +1,14 @@
+# =========================================================================
+# File Name: utils/text_utils.py
+# Project: Absher Smart Assistant (MOI ChatBot)
+# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
+#
+# Affiliation: King Abdullah University of Science and Technology (KAUST)
+# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
+#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
+# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# =========================================================================
+
 import re
 import unicodedata
 from typing import Optional
@@ -28,21 +39,18 @@ def normalize_arabic(text: Optional[str]) -> str:
     Optimized for Search Recall & Vector Embedding alignment.
     
     Operations:
-    1. Unicode Normalization (NFC).
-    2. Remove Zero-Width chars.
-    3. Remove Diacritics (Tashkeel).
-    4. Remove Tatweel (Kashida).
-    5. Unify Alef (أ, إ, آ -> ا).
-    6. Unify Ya/Alef Maqsura (ى -> ي).
-    7. Unify Taa Marbuta (ة -> ه).
+    1. Unicode Normalization (NFKC).
+    2. Zero-width character removal.
+    3. Diacritics & Tatweel removal.
+    4. Letter Standardization (Alef, Ya, Taa Marbuta).
     """
     if not isinstance(text, str):
         return ""
     
-    # 1. Unicode NFC
-    text = unicodedata.normalize("NFC", text)
+    # 1. Unicode Normalization
+    text = unicodedata.normalize('NFKC', text)
     
-    # 2. Remove Invisible Characters (ZWNJ, etc.)
+    # 2. Remove Zero-Width Chars
     text = ZERO_WIDTH.sub("", text)
     
     # 3. Remove Diacritics
@@ -55,9 +63,12 @@ def normalize_arabic(text: Optional[str]) -> str:
     text = ALEF_PAT.sub("ا", text)
     
     # 6. Unify Ya (ى -> ي)
+    # Note: Search engines often treat them identically. 
+    # We standardize to 'ي' to match user input habits.
     text = text.replace("ى", "ي")
     
     # 7. Unify Taa Marbuta (ة -> ه)
+    # Many users type "مدرسة" as "مدرسه". We standardize to 'ه'.
     text = text.replace("ة", "ه")
     
     # 8. Collapse Whitespace
@@ -88,16 +99,10 @@ def soft_clean(text: Optional[str]) -> str:
 
 def is_arabic(text: Optional[str]) -> bool:
     """
-    Heuristic check: Returns True if text contains Arabic characters.
+    Heuristic check if text contains Arabic characters.
+    Useful for routing logic if handling mixed languages.
     """
     if not isinstance(text, str):
         return False
+    # Check for presence of Arabic unicode block
     return bool(re.search(r'[\u0600-\u06FF]', text))
-
-def looks_english(text: Optional[str]) -> bool:
-    """
-    Heuristic check: Returns True if text contains basic Latin characters.
-    """
-    if not isinstance(text, str):
-        return False
-    return bool(re.search(r"[A-Za-z]", text))

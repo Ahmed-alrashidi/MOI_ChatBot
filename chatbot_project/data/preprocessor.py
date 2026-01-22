@@ -1,82 +1,96 @@
-import os
-import pandas as pd
-from typing import List, Optional
-from utils.text_utils import normalize_arabic, soft_clean
+# =========================================================================
+# File Name: data/preprocessor.py
+# Project: Absher Smart Assistant (MOI ChatBot)
+# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
+#
+# Affiliation: King Abdullah University of Science and Technology (KAUST)
+# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
+#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
+# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# =========================================================================
 
-# Mapping dictionary to convert file prefixes to official Arabic Sector names.
-SECTOR_MAP = {
-    "jawazat": "الجوازات",
-    "muroor": "المرور",
-    "ahwal": "الأحوال المدنية",
-    "waffedeen": "شؤون الوافدين",
-    "tafweed": "إدارة التفاويض",
-    "prisons": "المديرية العامة للسجون",
-    "amn": "الأمن العام",
-    "niyaba": "النيابة العامة",
-    "moiministry": "وزارة الداخلية",
-    "hajj": "وزارة الحج والعمرة"
-}
+import re
+import string
+from typing import str
 
-def infer_sector(filepath: str) -> str:
+class TextPreprocessor:
     """
-    Extracts and maps the sector name from the CSV filename.
-    Handles case-insensitivity and ensures a default fallback.
+    Handles Arabic text normalization and cleaning.
+    Critical for ensuring query-document matching in the Retrieval phase.
     """
-    try:
-        base = os.path.basename(filepath).lower()
-        # Extract the first part of the filename (e.g., 'jawazat' from 'jawazat_master.csv')
-        key = base.split("_")[0]
-        return SECTOR_MAP.get(key, "قطاع حكومي عام")
-    except Exception:
-        return "غير محدد"
 
-def clean_dataframe(df: pd.DataFrame, cols_to_clean: Optional[List[str]] = None) -> pd.DataFrame:
-    """
-    Applies text cleaning pipeline to specific columns in the DataFrame.
-    Optimized for memory efficiency by modifying in-place where possible.
-    
-    Updated to accept 'cols_to_clean' argument to match ingestion.py calls.
-    """
-    # If explicit columns are not provided, fall back to this comprehensive list
-    if cols_to_clean is None:
-        cols_to_clean = [
-            "service_title_ar", "description_full", "beneficiaries", 
-            "fees", "conditions", "chunk_text", "chunk_title"
-        ]
-    
-    for col in cols_to_clean:
-        if col in df.columns:
-            # Drop NaNs to prevent errors during mapping
-            df[col] = df[col].fillna("")
-            # Apply cleaning: Ensure String -> Soft Clean -> Normalize Arabic
-            df[col] = df[col].astype(str).map(soft_clean).map(normalize_arabic)
-            
-    return df
+    @staticmethod
+    def remove_diacritics(text: str) -> str:
+        """
+        Removes Arabic diacritics (Tashkeel).
+        Example: 'أَبْشِرْ' -> 'أبشر'
+        """
+        arabic_diacritics = re.compile("""
+                             ّ    | # Shadda
+                             َ    | # Fatha
+                             ً    | # Tanwin Fath
+                             ُ    | # Damma
+                             ٌ    | # Tanwin Damm
+                             ِ    | # Kasra
+                             ٍ    | # Tanwin Kasr
+                             ْ    | # Sukun
+                             ـ     # Tatweel/Kashida
+                         """, re.VERBOSE)
+        return re.sub(arabic_diacritics, '', text)
 
-def build_master_text_representation(row: pd.Series) -> str:
-    """
-    Constructs a 'Semantic Rich Text' representation for Embedding.
-    Uses natural language connectors to help the Embedding Model (BGE-M3) understand context.
-    """
-    # Base Sentence
-    title = row.get('service_title_ar', 'خدمة غير معنونة')
-    desc = row.get('description_full', '')
-    
-    # Natural Language Construction
-    text_parts = [f"خدمة {title}: {desc}"]
-    
-    # Add details only if they contain meaningful content (checking length > 2 filters out "nan" or "-")
-    if row.get("beneficiaries") and len(str(row["beneficiaries"])) > 2: 
-        text_parts.append(f"الفئات المستفيدة من الخدمة هي: {row['beneficiaries']}.")
+    @staticmethod
+    def normalize_arabic(text: str) -> str:
+        """
+        Standardizes Arabic characters to unify search space.
         
-    if row.get("fees") and len(str(row["fees"])) > 1: 
-        text_parts.append(f"تبلغ رسوم الخدمة: {row['fees']}.")
-        
-    if row.get("conditions") and len(str(row["conditions"])) > 2: 
-        text_parts.append(f"الشروط والمتطلبات تشمل: {row['conditions']}.")
-        
-    if row.get("access_path") and len(str(row["access_path"])) > 2: 
-        text_parts.append(f"طريقة الوصول للخدمة عبر أبشر: {row['access_path']}.")
+        Transformations:
+        1. Normalize Alef variants (أ, إ, آ) -> ا
+        2. Normalize Ta Marbuta (ة) -> ه (or vice versa, strictly consistent)
+        3. Normalize Ya (ي) -> ى (Alif Maqsura) handling
+        """
+        if not isinstance(text, str):
+            return str(text)
 
-    # Join with newlines to separate distinct semantic blocks
-    return "\n".join(text_parts)
+        # Remove diacritics first
+        text = TextPreprocessor.remove_diacritics(text)
+
+        # Normalize Alef
+        text = re.sub("[إأآا]", "ا", text)
+        
+        # Normalize Ta Marbuta to Ha (common in search normalization)
+        text = re.sub("ة", "ه", text)
+        
+        # Normalize Ya (Optional: depends on strictness, usually kept distinct in modern NLP)
+        # text = re.sub("ى", "ي", text)
+
+        return text
+
+    @staticmethod
+    def clean_text(text: str) -> str:
+        """
+        General cleaning pipeline for User Queries.
+        Removes punctuation, extra spaces, and non-alphanumeric noise.
+        """
+        if not text:
+            return ""
+
+        # Normalize Arabic chars
+        text = TextPreprocessor.normalize_arabic(text)
+        
+        # Remove punctuation
+        # We keep alphanumeric + Arabic chars + spaces
+        # Python's string.punctuation includes: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+        translator = str.maketrans('', '', string.punctuation)
+        text = text.translate(translator)
+        
+        # Remove extra whitespace (tabs, newlines, double spaces)
+        text = " ".join(text.split())
+        
+        return text
+
+# Helper block for testing
+if __name__ == "__main__":
+    sample_query = "كيف أجدد رخصة القيادة؟ (تجديد رخصه)"
+    cleaned = TextPreprocessor.clean_text(sample_query)
+    print(f"Original: {sample_query}")
+    print(f"Cleaned : {cleaned}")

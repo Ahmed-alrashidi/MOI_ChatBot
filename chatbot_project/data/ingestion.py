@@ -1,137 +1,108 @@
+# =========================================================================
+# File Name: data/ingestion.py
+# Project: Absher Smart Assistant (MOI ChatBot)
+# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
+#
+# Affiliation: King Abdullah University of Science and Technology (KAUST)
+# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
+#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
+# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# =========================================================================
+
 import os
 import glob
-import gc
-from typing import List
 import pandas as pd
+from typing import List
 from tqdm import tqdm
 from langchain.schema import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-
 from config import Config
 from utils.logger import setup_logger
-from data.schema import validate_schema, MASTER_REQUIRED, CHUNK_REQUIRED
-from data.preprocessor import infer_sector, clean_dataframe, build_master_text_representation
 
 # Initialize module logger
 logger = setup_logger(__name__)
 
 class DataIngestor:
     """
-    Orchestrates the ETL (Extract, Transform, Load) pipeline.
-    Optimized for memory efficiency and robustness.
+    Handles the ETL (Extract, Transform, Load) process specifically for the Vector Store.
+    
+    Responsibility:
+    - Reads 'Master' CSV files from the configured directory.
+    - Extracts the pre-formatted 'RAG_Content' column.
+    - Converts rows into LangChain Document objects with rich metadata.
     """
     
     def __init__(self):
         self.master_dir = Config.DATA_MASTER_DIR
-        self.chunks_dir = Config.DATA_CHUNKS_DIR
         
-        # Text Splitter configuration
-        self.splitter = RecursiveCharacterTextSplitter(
-            chunk_size=Config.CHUNK_SIZE,
-            chunk_overlap=Config.CHUNK_OVERLAP,
-            separators=["\n\n", "\n", " ", ""]
-        )
+    def load_master_documents(self) -> List[Document]:
+        """
+        Loads and converts Master CSV data into Documents for the Dense Vector Store.
+        
+        Returns:
+            List[Document]: A list of documents ready for BGE-M3 embedding.
+        """
+        documents = []
+        
+        # Verify directory exists
+        if not os.path.exists(self.master_dir):
+            logger.error(f"❌ Master Data directory not found: {self.master_dir}")
+            return []
 
-    def load_and_process(self) -> List[Document]:
-        """
-        Loads all CSV data, validates schemas, creates Documents, 
-        and performs strict memory cleanup after each file.
-        """
-        docs = []
+        # Get all CSV files in the Master directory
+        # Uses recursive glob if needed, currently flat structure
+        csv_files = glob.glob(os.path.join(self.master_dir, "*.csv"))
         
-        # --- Phase 1: Master Files ---
-        master_files = glob.glob(os.path.join(self.master_dir, "*.csv"))
-        logger.info(f"📂 Found {len(master_files)} Master files.")
-        
-        for f in tqdm(master_files, desc="Ingesting Masters"):
+        if not csv_files:
+            logger.warning(f"⚠️ No CSV files found in {self.master_dir}")
+            return []
+            
+        logger.info(f"📂 Found {len(csv_files)} Master CSV files to process.")
+
+        # Iterate over files with a progress bar
+        for file_path in tqdm(csv_files, desc="Ingesting Master Data"):
             try:
-                df = pd.read_csv(f)
+                # Read CSV (handling potential encoding issues automatically via pandas)
+                df = pd.read_csv(file_path)
                 
-                # Skip empty files
-                if df.empty:
-                    logger.warning(f"⚠️ Skipping empty file: {f}")
+                # Validation: Ensure the critical RAG column exists
+                if "RAG_Content" not in df.columns:
+                    logger.warning(f"⚠️ Skipping {os.path.basename(file_path)}: Missing 'RAG_Content' column.")
                     continue
 
-                # Schema Validation
-                # FIX: Pass filename 'f' and rely on Exception raising instead of return value
-                validate_schema(df, MASTER_REQUIRED, f)
-                
-                # Cleaning & Processing
-                # FIX: Specify columns to clean
-                df = clean_dataframe(df, ["service_title_ar", "description_full"])
-                sector = infer_sector(f)
-                
+                # Process each row
                 for _, row in df.iterrows():
-                    text_representation = build_master_text_representation(row)
+                    content = row["RAG_Content"]
                     
-                    meta = {
-                        "sector": sector,
-                        "service_id": str(row["service_id"]),
-                        "service_title": row.get("service_title_ar", ""),
-                        "doc_level": "service_master",
-                        "source_file": os.path.basename(f)
-                    }
-                    
-                    docs.append(Document(page_content=text_representation, metadata=meta))
-                
-                # --- MEMORY CLEANUP ---
-                del df
-                gc.collect()
-
-            except Exception as e:
-                logger.error(f"❌ Error processing Master file '{os.path.basename(f)}': {e}")
-
-        # --- Phase 2: Chunk Files ---
-        chunk_files = glob.glob(os.path.join(self.chunks_dir, "*.csv"))
-        logger.info(f"📂 Found {len(chunk_files)} Chunk files.")
-        
-        for f in tqdm(chunk_files, desc="Ingesting Chunks"):
-            try:
-                df = pd.read_csv(f)
-                
-                if df.empty: continue
-
-                # Schema Validation
-                validate_schema(df, CHUNK_REQUIRED, f)
-                
-                # Cleaning & Processing
-                # FIX: Specify columns to clean for chunks
-                df = clean_dataframe(df, ["chunk_text", "chunk_title"])
-                sector = infer_sector(f)
-                
-                for _, row in df.iterrows():
-                    base_meta = {
-                        "sector": sector,
-                        "service_id": str(row["service_id"]),
-                        "chunk_id": str(row["chunk_id"]),
-                        "chunk_title": row.get("chunk_title", ""), # Safe access
-                        "doc_level": "service_chunk",
-                        "source_file": os.path.basename(f)
-                    }
-                    
-                    text = row["chunk_text"]
-                    
-                    # Safety Split: Verify chunk fits embedding window
-                    if len(text) > Config.CHUNK_SIZE:
-                        parts = self.splitter.split_text(text)
-                        for i, p in enumerate(parts):
-                            meta = base_meta.copy()
-                            meta["chunk_part"] = f"{i+1}/{len(parts)}"
-                            docs.append(Document(page_content=p, metadata=meta))
-                    else:
-                        docs.append(Document(page_content=text, metadata=base_meta))
-                
-                # --- MEMORY CLEANUP ---
-                del df
-                gc.collect()
+                    # Skip empty or non-string content
+                    if not isinstance(content, str) or not content.strip():
+                        continue
                         
-            except Exception as e:
-                logger.error(f"❌ Error processing Chunk file '{os.path.basename(f)}': {e}")
-        
-        logger.info(f"✅ Ingestion Complete. Total Documents Created: {len(docs)}")
-        return docs
+                    # Extract Metadata from filename and columns
+                    # Filename format expected: "SectorName_Master.csv"
+                    filename = os.path.basename(file_path)
+                    sector_from_filename = filename.replace("_Master.csv", "").replace(".csv", "")
+                    
+                    metadata = {
+                        "source": filename,
+                        "english_sector": sector_from_filename,
+                        "service_name": row.get("اسم الخدمة", "Unknown"),
+                        "arabic_sector": row.get("القطاع", "Unknown"),
+                        "target_audience": row.get("الجمهور المستهدف", "General")
+                    }
+                    
+                    # Create the Document object
+                    doc = Document(page_content=content, metadata=metadata)
+                    documents.append(doc)
 
-# Helper for standalone execution
+            except Exception as e:
+                logger.error(f"❌ Error processing file {file_path}: {e}")
+
+        logger.info(f"✅ Ingestion Complete. Prepared {len(documents)} documents for Vector Store.")
+        return documents
+
+# Helper block for standalone testing
 if __name__ == "__main__":
     ingestor = DataIngestor()
-    ingestor.load_and_process()
+    docs = ingestor.load_master_documents()
+    if docs:
+        print(f"\n--- Sample Document ---\nContent: {docs[0].page_content[:100]}...\nMetadata: {docs[0].metadata}")

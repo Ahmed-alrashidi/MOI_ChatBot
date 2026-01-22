@@ -1,10 +1,20 @@
+# =========================================================================
+# File Name: utils/logger.py
+# Project: Absher Smart Assistant (MOI ChatBot)
+# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
+#
+# Affiliation: King Abdullah University of Science and Technology (KAUST)
+# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
+#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
+# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# =========================================================================
+
 import logging
 import sys
 import os
 from logging.handlers import TimedRotatingFileHandler
 
-# Temporarily append parent directory to path to import Config safely
-# This allows running scripts from subdirectories (e.g., python data/ingestion.py)
+# Ensure we can import Config even if running this script directly
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 if parent_dir not in sys.path:
@@ -17,9 +27,9 @@ def setup_logger(name: str = __name__) -> logging.Logger:
     Configures and returns a production-ready logger instance with Log Rotation.
     
     Features:
-    - **Log Rotation:** Creates a new log file every midnight (backup count: 30 days).
-    - **Dual Output:** Detailed logs to file, clean logs to console.
-    - **UTF-8 Support:** Critical for Arabic logs.
+    - Log Rotation: Creates a new log file every midnight (keeps last 30 days).
+    - Dual Output: Detailed logs to file, clean logs to console.
+    - UTF-8 Support: Critical for Arabic logs.
     """
     logger = logging.getLogger(name)
     
@@ -28,7 +38,7 @@ def setup_logger(name: str = __name__) -> logging.Logger:
         logger.setLevel(logging.INFO)
         
         # --- Formatters ---
-        # File: Very Detailed (Time + Module + Func + Line + Level + Message)
+        # File: Detailed (Time + Module + Func + Line + Level + Message)
         file_formatter = logging.Formatter(
             '%(asctime)s - [%(name)s:%(funcName)s:%(lineno)d] - %(levelname)s - %(message)s'
         )
@@ -39,13 +49,15 @@ def setup_logger(name: str = __name__) -> logging.Logger:
         
         # --- 1. Rotating File Handler (Production Safe) ---
         try:
-            log_dir = os.path.dirname(Config.LOG_FILE)
-            if log_dir and not os.path.exists(log_dir):
+            log_dir = Config.LOG_DIR
+            if not os.path.exists(log_dir):
                 os.makedirs(log_dir, exist_ok=True)
+
+            log_file_path = os.path.join(log_dir, "app.log")
 
             # Rotate logs every midnight, keep last 30 days
             file_handler = TimedRotatingFileHandler(
-                Config.LOG_FILE, 
+                log_file_path, 
                 when="midnight", 
                 interval=1, 
                 backupCount=30, 
@@ -56,7 +68,8 @@ def setup_logger(name: str = __name__) -> logging.Logger:
             logger.addHandler(file_handler)
             
         except Exception as e:
-            print(f"⚠️ Warning: Could not create log file handler: {e}")
+            # Fallback if file permission issues occur
+            print(f"Warning: Could not create log file handler: {e}")
         
         # --- 2. Stream Handler (Console) ---
         stream_handler = logging.StreamHandler(sys.stdout)

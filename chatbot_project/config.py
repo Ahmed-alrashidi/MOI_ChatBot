@@ -1,101 +1,119 @@
+# =========================================================================
+# File Name: config.py
+# Project: Absher Smart Assistant (MOI ChatBot)
+# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
+#
+# Affiliation: King Abdullah University of Science and Technology (KAUST)
+# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
+#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
+# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# =========================================================================
+
 import os
-import sys
-from typing import Optional, List
+import torch
 from dotenv import load_dotenv
 
-# Load environment variables from a .env file if present
+# Load environment variables from .env file (if exists)
 load_dotenv()
 
 class Config:
     """
-    Central Configuration Class - Optimized for NVIDIA A100 Infrastructure.
+    Central Configuration Class.
+    Acts as the 'Control Center' for Paths, Models, Hyperparameters, and Prompts.
+    Optimized for NVIDIA A100 Infrastructure.
     """
 
     # =====================================================
-    # 1. Project Paths
+    # 1. System & Compute Settings
     # =====================================================
-    PROJECT_ROOT: str = os.path.dirname(os.path.abspath(__file__))
+    # Auto-detect best device
+    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     
-    # Data Directories
-    DATA_ROOT: str = os.getenv("MOI_DATA_ROOT", os.path.join(PROJECT_ROOT, "data"))
-    DATA_MASTER_DIR: str = os.path.join(DATA_ROOT, "Data_Master")
-    DATA_CHUNKS_DIR: str = os.path.join(DATA_ROOT, "Data_chunks")
+    # Use bfloat16 for A100 (Ampere) to maximize throughput, else float16
+    TORCH_DTYPE = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
-    # Processed Data & Vector Database
-    PROCESSED_DIR: str = os.path.join(DATA_ROOT, "data_processed")
-    VECTOR_DB_DIR: str = os.path.join(DATA_ROOT, "vector_db")
+    # Hugging Face Token (Critical for Gate-kept models like ALLaM)
+    HF_TOKEN = os.getenv("HF_TOKEN")
+
+    # =====================================================
+    # 2. Project Paths & Directory Structure
+    # =====================================================
+    PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
     
-    # Models Cache Directory
-    MODELS_DIR: str = os.getenv("MOI_MODELS_DIR", os.path.join(PROJECT_ROOT, "models"))
-
-    # Outputs (Logs & Audio)
-    OUTPUTS_DIR: str = os.getenv("MOI_OUTPUTS_DIR", os.path.join(PROJECT_ROOT, "outputs"))
-    LOGS_DIR: str = os.path.join(OUTPUTS_DIR, "logs")
-    AUDIO_DIR: str = os.path.join(OUTPUTS_DIR, "audio")
-    LOG_FILE: str = os.path.join(LOGS_DIR, "app.log")
-
-    # =====================================================
-    # 2. Authentication
-    # =====================================================
-    @staticmethod
-    def get_hf_token() -> Optional[str]:
-        """
-        Retrieves the Hugging Face Token intelligently.
-        """
-        # 1. Try Colab Secrets
-        try:
-            from google.colab import userdata
-            token = userdata.get('HF_TOKEN')
-            if token: return token
-        except ImportError:
-            pass
-
-        # 2. Try Environment Variables
-        token = os.getenv("HF_TOKEN")
-        if token: return token
-        
-        return None
-
-    # Accessor for consistency
-    HF_TOKEN: Optional[str] = os.getenv("HF_TOKEN")
+    # Data Layer
+    DATA_DIR = os.path.join(PROJECT_ROOT, "data")
+    DATA_MASTER_DIR = os.path.join(DATA_DIR, "Data_Master")
+    DATA_CHUNK_DIR = os.path.join(DATA_DIR, "Data_Chunk") # Directory for sparse retrieval files
+    
+    # Storage Layer
+    VECTOR_DB_DIR = os.path.join(DATA_DIR, "faiss_index")
+    
+    # Outputs Layer
+    LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
+    AUDIO_DIR = os.path.join(PROJECT_ROOT, "outputs", "audio")
 
     # =====================================================
-    # 3. Model Configuration (A100 Tier)
+    # 3. Model Architecture (SOTA Selection)
     # =====================================================
-    EMBEDDING_MODEL_NAME: str = "BAAI/bge-m3"
-    LLM_MODEL_NAME: str = "ALLaM-AI/ALLaM-7B-Instruct-preview"
-    ASR_MODEL_NAME: str = "openai/whisper-large-v3"
+    # LLM: Saudi-Native ALLaM-7B (Optimized for Arabic context)
+    LLM_MODEL_NAME = "ALLaM-AI/ALLaM-7B-Instruct-preview"
+    
+    # Embedding: BGE-M3 (Best for Multilingual Dense Retrieval)
+    EMBEDDING_MODEL_NAME = "BAAI/bge-m3"
+    
+    # ASR: Whisper Large V3 (Best for Arabic Speech-to-Text)
+    ASR_MODEL_NAME = "openai/whisper-large-v3"
 
     # =====================================================
     # 4. RAG Pipeline Hyperparameters
     # =====================================================
-    CHUNK_SIZE: int = 1200
-    CHUNK_OVERLAP: int = 300
+    # Retrieval Settings
+    RETRIEVAL_K = 5        # Documents to retrieve from EACH source (Dense/Sparse)
+    RRF_K = 60             # Reciprocal Rank Fusion constant
     
-    RETRIEVAL_K: int = 15
-    RERANK_TOP_K: int = 5 
-    
-    MAX_NEW_TOKENS: int = 1024
-    TEMPERATURE: float = 0.3
-    TOP_P: float = 0.9
-    REPETITION_PENALTY: float = 1.1
+    # Generation Settings
+    MAX_NEW_TOKENS = 512
+    TEMPERATURE = 0.1      # Keep it low (0.1) for factual, hallucination-free responses
+    TOP_P = 0.9
+    REPETITION_PENALTY = 1.1
 
-    # App Logic
-    HISTORY_SUMMARY_THRESHOLD: int = 3
-    AUDIO_RETENTION_SECONDS: int = 600
+    # Text Splitting (if needed for raw text)
+    CHUNK_SIZE = 700
+    CHUNK_OVERLAP = 100
 
+    # =====================================================
+    # 5. System Persona (The "Soul" of the Agent)
+    # =====================================================
+    # Centralizing the prompt here makes it easier to tune without touching logic code.
+    SYSTEM_PROMPT_TEMPLATE = """<s>[INST] <<SYS>>
+أنت "مساعد أبشر الذكي"، نظام ذكاء اصطناعي سيادي تابع لوزارة الداخلية السعودية.
+مهمتك هي الإجابة على استفسارات المواطنين والمقيمين بدقة متناهية بناءً على المعلومات الرسمية المقدمة فقط.
+
+القواعد الصارمة:
+1. **المصدر:** استمد إجابتك **حصرياً** من "السياق المسترجع" أدناه. لا تخترع معلومات.
+2. **اللغة:** استخدم اللغة العربية الفصحى بأسلوب رسمي ومهذب.
+3. **التنسيق:** إذا كانت الإجابة تتضمن خطوات أو شروط، استخدم النقاط (Bullet points).
+4. **الرفض:** إذا لم تجد الإجابة في السياق، قل: "عذراً، لا تتوفر لدي معلومات كافية حول هذا الموضوع في الوثائق الرسمية الحالية."
+<</SYS>>
+
+السياق الرسمي:
+{context}
+
+سجل المحادثة:
+{chat_history}
+
+سؤال المستخدم:
+{question} [/INST]"""
+
+    # =====================================================
+    # 6. Helper Methods
+    # =====================================================
     @classmethod
-    def setup_directories(cls) -> None:
-        dirs_to_create: List[str] = [
-            cls.DATA_ROOT, cls.PROCESSED_DIR, cls.VECTOR_DB_DIR,
-            cls.OUTPUTS_DIR, cls.LOGS_DIR, cls.AUDIO_DIR, cls.MODELS_DIR
-        ]
-        
-        for directory in dirs_to_create:
-            try:
-                os.makedirs(directory, exist_ok=True)
-            except OSError as e:
-                print(f"⚠️ Warning: Could not create directory {directory}: {e}")
+    def ensure_directories(cls):
+        """Creates necessary directories if they don't exist."""
+        dirs = [cls.DATA_DIR, cls.LOG_DIR, cls.AUDIO_DIR, cls.VECTOR_DB_DIR]
+        for d in dirs:
+            os.makedirs(d, exist_ok=True)
 
-# Setup on import
-Config.setup_directories()
+# Run setup on import to guarantee folder existence
+Config.ensure_directories()

@@ -1,125 +1,87 @@
-import os
+# =========================================================================
+# File Name: ui/theme.py
+# Project: Absher Smart Assistant (MOI ChatBot)
+# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
+#
+# Affiliation: King Abdullah University of Science and Technology (KAUST)
+# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
+#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
+# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# =========================================================================
 
-# --- Path Configuration ---
-# Correct path pointing to: ui/assets/moi_logo.png
-# When running main.py from root, Gradio serves files relative to root via "file/" prefix
-LOGO_PATH = "file/ui/assets/moi_logo.png"
+import gradio as gr
 
+# --- 1. Custom CSS (Government Grade Design) ---
 MOI_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
 
-/* --- Global Reset & Font --- */
+/* Global Settings */
 body, .gradio-container { 
     font-family: 'Tajawal', sans-serif !important; 
-    background-color: #f4f6f8 !important; 
+    background-color: #F3F4F6 !important; 
 }
 
-/* --- The Main Header Card --- */
+/* --- Header Card --- */
 .moi-header {
-    display: flex;
-    justify-content: space-between; 
-    align-items: center;
-    padding: 1.2rem 2.5rem; 
-    background: linear-gradient(135deg, #1A5D3A 0%, #0F4026 100%); /* Official MOI Green */
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(26, 93, 58, 0.25);
-    margin-bottom: 25px;
-    border-bottom: 3px solid #D4AF37; /* Gold Trim */
-    border-top: 1px solid rgba(255,255,255,0.1);
+    background: linear-gradient(135deg, #114b2a 0%, #0d321d 100%); /* Deep Emerald */
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(17, 75, 42, 0.25);
+    border-bottom: 4px solid #C5A059; /* Gold Trim */
+    color: white;
+    text-align: center;
+    margin-bottom: 20px;
     position: relative;
     overflow: hidden;
 }
 
-/* Subtle background pattern overlay */
-.moi-header::before {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-image: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.05) 0%, transparent 25%);
-    pointer-events: none;
-}
-
-/* --- Right Side: Title & Logo (RTL) --- */
-.header-title-group {
+/* Header Content Layout */
+.header-content {
     display: flex;
-    flex-direction: row-reverse; 
+    justify-content: space-between;
     align-items: center;
-    gap: 1.5rem;
-    text-align: right;
+    flex-wrap: wrap;
+    gap: 15px;
+    position: relative;
     z-index: 2;
 }
 
-.moi-logo {
-    width: 85px; 
-    height: auto;
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
-    transition: transform 0.3s ease;
-}
-
-.moi-logo:hover {
-    transform: scale(1.05);
-}
-
-.header-text h1 {
-    color: #ffffff;
-    font-size: 1.8rem;
+.title-section h1 {
+    font-size: 2rem;
     font-weight: 800;
     margin: 0;
-    line-height: 1.2;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    color: #fff;
+    letter-spacing: -0.5px;
 }
-
-.header-text p {
+.title-section p {
     color: #e0e0e0;
-    font-size: 0.95rem;
-    margin: 0;
+    margin: 5px 0 0 0;
+    font-size: 1rem;
     opacity: 0.9;
-    font-weight: 500;
 }
 
-/* --- Left Side: Tech Badges (LTR Flow) --- */
+/* Tech Badges (Right Side) */
 .tech-badges {
     display: flex;
     gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-    z-index: 2;
 }
 
 .badge {
     background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(5px);
-    padding: 6px 14px;
-    border-radius: 50px;
-    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 8px;
     font-size: 0.85rem;
-    font-weight: 600;
-    font-family: 'Segoe UI', monospace;
-    border: 1px solid rgba(255, 255, 255, 0.15);
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
+    gap: 6px;
+    backdrop-filter: blur(4px);
 }
 
-.badge:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-    border-color: #D4AF37;
-}
-
-/* Hardware Accelerator Badge style */
-.badge.gpu {
-    background: linear-gradient(90deg, rgba(118,185,0,0.2) 0%, rgba(26,93,58,0.4) 100%);
-    border: 1px solid #76b900;
-    color: #e8f5e9;
-}
-
-/* Live Indicator Dot with Pulse */
-.dot {
+.badge.gpu span.dot {
     height: 8px;
     width: 8px;
-    background-color: #00ff88; 
+    background-color: #00ff88;
     border-radius: 50%;
     display: inline-block;
     box-shadow: 0 0 8px #00ff88;
@@ -127,76 +89,85 @@ body, .gradio-container {
 }
 
 @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
-    70% { box-shadow: 0 0 0 6px rgba(0, 255, 136, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
 }
 
-/* --- Chat Interface Styling --- */
-.message-row {
-    margin-bottom: 12px;
+/* --- Chat Interface --- */
+.chatbot-container {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 12px !important;
+    background: white !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* User Message */
-.message.user {
-    background-color: #ffffff !important;
-    border: 1px solid #e0e0e0 !important;
-    border-radius: 12px 12px 2px 12px !important; /* Point to right */
-    color: #333 !important;
-    font-weight: 500;
+/* User Message Bubble */
+.user-message {
+    background-color: #114b2a !important; /* MOI Green */
+    color: white !important;
+    border-radius: 18px 18px 2px 18px !important;
+    padding: 10px 15px !important;
+    font-size: 1rem;
 }
 
-/* Bot Message */
-.message.bot {
-    background-color: #F1F8E9 !important; /* Light Green Tint */
-    border: 1px solid #C5E1A5 !important;
-    border-radius: 12px 12px 12px 2px !important; /* Point to left */
-    color: #004D26 !important;
+/* Bot Message Bubble */
+.bot-message {
+    background-color: #f3f4f6 !important; /* Light Gray */
+    color: #1f2937 !important;
+    border-radius: 18px 18px 18px 2px !important;
+    border: 1px solid #e5e7eb;
+    padding: 10px 15px !important;
+    font-size: 1rem;
     line-height: 1.6;
 }
 
-/* RTL Support inside chat */
-.message {
+/* RTL Support */
+.message-wrap {
     direction: rtl;
-    text-align: right;
-}
-/* If text is detected as English via a class (optional), flip it */
-.message.ltr {
-    direction: ltr;
-    text-align: left;
 }
 
-/* Footer/Disclaimer */
-footer {
-    display: none !important; /* Hide default Gradio footer */
-}
+/* Hide Default Footer */
+footer { visibility: hidden; }
 """
 
-# HTML Component
-HEADER_HTML = f"""
+# --- 2. HTML Header Component ---
+HEADER_HTML = """
 <div class='moi-header'>
-    <div class='tech-badges'>
-        <div class='badge gpu'>
-            <span>🚀 NVIDIA A100</span>
+    <div class='header-content'>
+        <div class='title-section' style='text-align: right;'>
+            <h1>مساعد أبشر الذكي</h1>
+            <p>الذكاء الاصطناعي السيادي لخدمات وزارة الداخلية</p>
         </div>
-        <div class='badge'>
-            <span>🤖 ALLaM-7B</span>
+        
+        <div class='tech-badges'>
+            <div class='badge gpu'>
+                <span class='dot'></span>
+                <span>NVIDIA A100 Online</span>
+            </div>
+            <div class='badge'>
+                <span>🧠 RAG v4.0</span>
+            </div>
+            <div class='badge'>
+                <span>🇸🇦 ALLaM-7B</span>
+            </div>
         </div>
-        <div class='badge'>
-            <span>🧠 RAG v4.0</span>
-        </div>
-        <div class='badge'>
-            <span class='dot'></span>
-            <span>System Online</span>
-        </div>
-    </div>
-
-    <div class='header-title-group'>
-        <div class='header-text'>
-            <h1>المساعد الذكي لوزارة الداخلية</h1>
-            <p>MOI Smart Assistant • Powered by Generative AI</p>
-        </div>
-        <img src='{LOGO_PATH}' class='moi-logo' alt='MOI Logo'>
     </div>
 </div>
 """
+
+# --- 3. Gradio Theme Object ---
+# Using Soft theme as base, customized with MOI colors
+MOI_THEME = gr.themes.Soft(
+    primary_hue="emerald",
+    secondary_hue="stone",
+    neutral_hue="slate",
+    font=[gr.themes.GoogleFont("Tajawal"), "sans-serif"]
+).set(
+    button_primary_background_fill="#114b2a",
+    button_primary_background_fill_hover="#0d321d",
+    button_primary_text_color="white",
+    block_title_text_color="#114b2a",
+    block_label_text_color="#114b2a",
+    input_background_fill="white"
+)

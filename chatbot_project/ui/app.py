@@ -1,154 +1,185 @@
+# =========================================================================
+# File Name: ui/app.py
+# Project: Absher Smart Assistant (MOI ChatBot)
+# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
+#
+# Affiliation: King Abdullah University of Science and Technology (KAUST)
+# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
+#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
+# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# =========================================================================
+
 import gradio as gr
-import gc
-import torch
+import time
 from typing import List, Tuple, Optional, Any
 
 from config import Config
 from core.model_loader import ModelManager
-from ui.theme import MOI_CSS, HEADER_HTML
+from ui.theme import MOI_CSS, HEADER_HTML, MOI_THEME
 from utils.logger import setup_logger
 from utils.tts import generate_speech
 
 # Initialize UI Logger
 logger = setup_logger(__name__)
 
-def create_app(rag_chain: Any) -> gr.Blocks:
+def create_app(rag_system: Any) -> gr.Blocks:
     """
-    Builds the Gradio Application with A100 optimizations.
-    Integrates: RAG v4.0, Whisper ASR, and MOI Theme.
+    Constructs the Gradio UI with A100 optimizations.
+    Connects the UI to the RAG Pipeline and ASR/TTS modules.
     """
     
-    # --- Logic Handlers ---
+    # --- Interaction Logic ---
+    def chat_pipeline(
+        user_text: str, 
+        history: List[Tuple[str, str]], 
+        audio_path: Optional[str]
+    ):
+        """
+        The Master Handler: Audio -> Text -> RAG -> Response -> TTS
+        """
+        if not user_text and not audio_path:
+            return history, None, "", None
 
-    def process_query(message: str, history: List[Tuple[str, str]], audio_path: Optional[str]):
-        """
-        Main Handler: Audio -> Text -> RAG -> Response -> TTS
-        Returns: [History, Audio_Out, Msg_Box, Audio_In_Reset]
-        """
-        user_text = message
-        
-        # 1. Handle Audio Input (Whisper A100)
+        # 1. Transcribe Audio (if present)
         if audio_path:
-            logger.info("🎤 Audio detected. Transcribing with Whisper...")
+            logger.info("🎤 Processing Audio Input...")
             try:
                 asr_pipe = ModelManager.get_asr_pipeline()
                 if asr_pipe:
-                    # Using the optimized pipeline
+                    # Whisper Inference
                     out = asr_pipe(audio_path)
                     transcribed = out["text"].strip()
                     if transcribed:
-                        user_text = transcribed
-                        logger.info(f"📝 Transcribed: {user_text}")
+                        user_text = transcribed  # Override text with transcription
                 else:
-                    logger.warning("⚠️ Whisper not loaded. Using text only.")
+                    logger.warning("⚠️ ASR Model not loaded.")
             except Exception as e:
                 logger.error(f"❌ ASR Error: {e}")
-                # Don't overwrite text if ASR fails, maybe user typed something
-                if not user_text: 
-                    user_text = "عذراً، لم أتمكن من سماع الصوت بوضوح."
 
-        # Hygiene check: If no text and no audio transcription
-        if not user_text.strip():
-            # Return current state without changes, but clear inputs
-            return history, None, "", None
+        # 2. Update UI immediately (User Message)
+        # We append a placeholder for the bot response
+        history = history + [[user_text, None]]
+        yield history, None, "", None # Yield 1: Show user message
 
-        # 2. RAG Generation (The Heavy Lifting)
-        # Note: rag_chain handles memory summarization internally based on 'history'
-        bot_response = rag_chain.answer(user_text, history)
-        
-        # 3. Text-to-Speech (TTS)
-        # Generate audio file for the response
-        audio_out_path = generate_speech(bot_response)
+        # 3. RAG Generation (The "Thinking" Phase)
+        start_time = time.time()
+        try:
+            # Pass history excluding the current None placeholder
+            context_history = [tuple(h) for h in history[:-1]]
+            
+            response_text = rag_system.run(user_text, context_history)
+            
+            # Calculate latency for logs
+            latency = time.time() - start_time
+            logger.info(f"✅ Response generated in {latency:.2f}s")
+            
+        except Exception as e:
+            logger.error(f"❌ RAG Error: {e}")
+            response_text = "عذراً، واجهت مشكلة تقنية في معالجة طلبك. يرجى المحاولة مرة أخرى."
 
-        # 4. Update UI
-        updated_history = history + [(user_text, bot_response)]
-        
-        # Return: 
-        # 1. Updated Chat History
-        # 2. Generated Audio Path (Response)
-        # 3. Clear Text Input ("")
-        # 4. Clear Audio Input (None) -> Prevents re-sending old audio
-        return updated_history, audio_out_path, "", None
+        # 4. Update UI (Bot Message)
+        history[-1][1] = response_text
+        yield history, None, "", None # Yield 2: Show text response
 
-    def clear_session():
-        """Hard reset for memory and UI."""
-        # Force memory cleanup on GPU
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        
-        # Return empty states for: Chatbot, TTS Player, Text Input, Audio Input
+        # 5. Generate TTS (The "Speaking" Phase)
+        audio_output = None
+        try:
+            audio_output = generate_speech(response_text)
+        except Exception as e:
+            logger.error(f"❌ TTS Error: {e}")
+
+        # Final Yield: Add Audio
+        yield history, audio_output, "", None
+
+    def clear_context():
+        """Resets the interface and clears memory"""
         return [], None, "", None
 
     # --- UI Layout Construction ---
-    with gr.Blocks(css=MOI_CSS, title="MOI Smart Assistant (A100 Powered)") as demo:
+    with gr.Blocks(theme=MOI_THEME, css=MOI_CSS, title="Absher Smart Assistant") as demo:
         
-        # 1. Header (HTML/CSS)
+        # 1. Header
         gr.HTML(HEADER_HTML)
-        
-        # 2. Main Chat Interface
-        with gr.Column(elem_classes="chat-container"):
-            chatbot = gr.Chatbot(
-                label="MOI Assistant",
-                elem_id="moi-chatbot",
-                height=550,
-                show_label=False,
-                rtl=True, # Native Arabic Support
-                avatar_images=(None, "ui/assets/moi_logo.png"), # Bot Avatar
-                show_copy_button=True
-            )
-            
-            # TTS Player (Hidden initially, appears with response)
-            tts_player = gr.Audio(
-                label="🔊 قراءة الرد",
-                interactive=False, 
-                autoplay=False, # User choice to play
-                visible=True
-            )
 
-        # 3. Input Controls
-        with gr.Row(elem_classes="input-row"):
-            with gr.Column(scale=4):
-                msg_input = gr.Textbox(
+        # 2. Main Layout
+        with gr.Row():
+            
+            # Left Column: Chat Window
+            with gr.Column(scale=2):
+                chatbot = gr.Chatbot(
+                    label="المحادثة",
                     show_label=False,
-                    placeholder="اكتب سؤالك هنا أو استخدم الميكروفون... / Ask here...",
-                    container=False,
-                    lines=1,
-                    max_lines=3,
-                    autofocus=True,
-                    rtl=True
+                    bubble_full_width=False,
+                    avatar_images=(None, "ui/assets/moi_logo.png"), # Ensure logo exists or use None
+                    height=550,
+                    rtl=True,
+                    elem_classes=["chatbot-container"]
                 )
-            
-            with gr.Column(scale=1, min_width=100):
-                submit_btn = gr.Button("🚀 إرسال", variant="primary", size="lg")
+                
+                # Audio Player (Hidden initially, appears when TTS is ready)
+                tts_player = gr.Audio(
+                    label="الرد الصوتي", 
+                    autoplay=True, 
+                    visible=True, 
+                    elem_id="tts-player",
+                    interactive=False
+                )
 
-        # 4. Utility Controls (Audio & Clear)
-        with gr.Accordion("أدوات إضافية (صوت / مسح)", open=False):
-            with gr.Row():
+            # Right Column: Controls
+            with gr.Column(scale=1, elem_classes=["controls-panel"]):
+                gr.Markdown("### 🗨️ ابدأ المحادثة")
+                
+                msg_input = gr.Textbox(
+                    placeholder="كتب استفسارك هنا أو استخدم الميكروفون...",
+                    label="الاستفسار النصي",
+                    lines=2,
+                    max_lines=4,
+                    rtl=True,
+                    elem_id="msg-input"
+                )
+                
                 audio_input = gr.Audio(
                     source="microphone", 
                     type="filepath", 
                     label="تسجيل صوتي",
-                    show_download_button=False
+                    elem_id="audio-input"
                 )
-                clear_btn = gr.Button("🗑️ مسح المحادثة", variant="secondary")
+                
+                with gr.Row():
+                    clear_btn = gr.Button("🗑️ مسح", variant="secondary")
+                    submit_btn = gr.Button("🚀 إرسال", variant="primary")
+
+                # Examples Section
+                gr.Markdown("### 💡 أسئلة شائعة")
+                gr.Examples(
+                    examples=[
+                        ["كيف أجدد رخصة القيادة؟"],
+                        ["ما هي شروط إصدار الإقامة؟"],
+                        ["كم رسوم تجديد الجواز؟"],
+                        ["كيف أبلغ عن حادث بسيط؟"]
+                    ],
+                    inputs=msg_input,
+                    label="نماذج"
+                )
 
         # --- Event Wiring ---
-        
-        # Define Input/Output list for cleaner code
-        app_inputs = [msg_input, chatbot, audio_input]
-        app_outputs = [chatbot, tts_player, msg_input, audio_input] # Added audio_input to outputs to clear it
+        # 1. Submit via Button
+        submit_btn.click(
+            chat_pipeline,
+            inputs=[msg_input, chatbot, audio_input],
+            outputs=[chatbot, tts_player, msg_input, audio_input]
+        )
 
-        # Enter Key on Textbox
-        msg_input.submit(process_query, inputs=app_inputs, outputs=app_outputs)
-        
-        # Send Button Click
-        submit_btn.click(process_query, inputs=app_inputs, outputs=app_outputs)
-        
-        # Clear Button
+        # 2. Submit via Enter Key
+        msg_input.submit(
+            chat_pipeline,
+            inputs=[msg_input, chatbot, audio_input],
+            outputs=[chatbot, tts_player, msg_input, audio_input]
+        )
+
+        # 3. Clear Button
         clear_btn.click(
-            clear_session,
-            inputs=[],
+            clear_context,
             outputs=[chatbot, tts_player, msg_input, audio_input]
         )
 

@@ -1,295 +1,183 @@
+# =========================================================================
+# File Name: core/rag_pipeline.py
+# Project: Absher Smart Assistant (MOI ChatBot)
+# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
+#
+# Affiliation: King Abdullah University of Science and Technology (KAUST)
+# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
+#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
+# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# =========================================================================
+
+import os
 import torch
-import gc
-import numpy as np
-from typing import List, Tuple, Any, Optional
+import pandas as pd
+from typing import List, Tuple, Any
 from langchain.schema import Document
 from langchain_community.retrievers import BM25Retriever
-from transformers import pipeline, Pipeline
-from langdetect import detect
 
 from config import Config
 from utils.logger import setup_logger
-from utils.text_utils import normalize_arabic
+from utils.text_utils import normalize_arabic  # Added for query preprocessing
 from core.model_loader import ModelManager
+from core.vector_store import VectorStoreManager
 
-# Initialize module logger
 logger = setup_logger(__name__)
 
-# --- 1. Prompts for Memory & Context ---
-
-# Prompt to summarize long history to keep memory fresh
-SUMMARY_PROMPT = """
-لخص المحادثة التالية في 3 جمل قصيرة جداً ومركزة، واحتفظ بالمعلومات الرئيسية (الأرقام، الخدمات المطلوبة).
-المحادثة:
-{history}
-الملخص:
-"""
-
-# Prompt for Query Rewriting (Context Awareness)
-CONDENSE_Q_PROMPT = """
-بناءً على "ملخص المحادثة" و"السجل الحديث"، أعد صياغة السؤال الأخير ليكون مستقلاً ومفهوماً.
-ملخص سابق: {summary}
-سجل حديث: {chat_history}
-السؤال: {question}
-السؤال المعاد صياغته:
-"""
-
-# Main System Prompt (Optimized for Summary + Context)
-SYSTEM_PROMPT = """
-<s>[INST] <<SYS>>
-أنت مساعد ذكي لخدمات وزارة الداخلية (MOI Universal Assistant).
-
-التعليمات الصارمة:
-1. **اللغة:** أجب **دائماً** باللغة العربية الفصحى.
-2. **الأسلوب:** كن **موجزاً جداً ومباشراً**. اذكر الإجابة (الرسوم، الشروط، الخطوات) فوراً.
-3. **المصدر:** اعتمد حصرياً على [Context].
-4. **الذاكرة:** استفد من [Memory Summary] لفهم سياق الحديث الطويل.
-<</SYS>>
-
-[Memory Summary]
-{summary}
-
-[Context]
-{context}
-
-[Recent Chat]
-{chat_history}
-
-[User Question]
-{question}
-[/INST]
-"""
-
-class ProRAGChain:
+class RAGPipeline:
     """
-    Advanced RAG Pipeline optimized for A100.
-    Features:
-    - Auto-Summarization (Infinite Memory)
-    - Aggressive VRAM Cleanup
-    - Input/Output Translation
+    Orchestrates the Hybrid Retrieval-Augmented Generation pipeline.
+    Combines Dense Vector Search (BGE-M3) and Sparse Keyword Search (BM25)
+    using Reciprocal Rank Fusion (RRF), then generates answers via ALLaM-7B.
     """
-
-    def __init__(self, vector_store, all_documents: List[Document]):
-        self.vector_store = vector_store
+    
+    def __init__(self):
+        logger.info("🚀 Initializing Hybrid RAG Pipeline...")
         
-        # Load Singleton Models (A100 Optimized)
-        self.llm_model, self.llm_tokenizer = ModelManager.get_llm()
+        # 1. Load Models (Embedding + LLM)
         self.embed_model = ModelManager.get_embedding_model()
+        self.llm, self.tokenizer = ModelManager.get_llm()
         
-        # Initialize Retrievers
-        self.dense_retriever = vector_store.as_retriever(search_kwargs={"k": Config.RETRIEVAL_K})
-        
-        if all_documents:
-            self.bm25_retriever = BM25Retriever.from_documents(all_documents)
-            self.bm25_retriever.k = Config.RETRIEVAL_K
-        else:
-            self.bm25_retriever = None
-
-        # Initialize Pipelines with A100 Precision
-        self.gen_pipeline = self._create_pipeline(max_new_tokens=Config.MAX_NEW_TOKENS, sample=True)
-        self.trans_pipeline = self._create_pipeline(max_new_tokens=256, sample=False)
-        
-        # Memory State
-        self.conversation_summary = ""
-        self.turn_count = 0
-
-    def _create_pipeline(self, max_new_tokens: int, sample: bool = True) -> Pipeline:
-        """Creates a pipeline optimized for A100 (bfloat16)."""
-        return pipeline(
-            "text-generation",
-            model=self.llm_model,
-            tokenizer=self.llm_tokenizer,
-            max_new_tokens=max_new_tokens,
-            do_sample=sample,
-            temperature=Config.TEMPERATURE if sample else 0.1,
-            top_p=Config.TOP_P if sample else 1.0,
-            repetition_penalty=Config.REPETITION_PENALTY if sample else 1.0,
-            pad_token_id=self.llm_tokenizer.eos_token_id,
-            # Ensure pipeline uses the model's device/dtype
-            device_map="auto"
+        # 2. Initialize Dense Retrieval (Vector Store)
+        # Relies on FAISS built from 'Data_Master' files
+        self.vector_db = VectorStoreManager.load_or_build(self.embed_model)
+        self.dense_retriever = self.vector_db.as_retriever(
+            search_type="similarity", 
+            search_kwargs={"k": Config.RETRIEVAL_K}
         )
+        
+        # 3. Initialize Sparse Retrieval (Keyword Matching)
+        # Built dynamically from 'Data_Chunk' files to capture specific details
+        self.bm25_retriever = self._build_bm25_from_chunks()
+        
+        logger.info("✅ Pipeline Ready: Hybrid Retrieval (BGE-M3 + BM25) Enabled.")
 
-    def _clean_memory(self):
-        """Forces garbage collection and clears CUDA cache to prevent OOM."""
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-
-    def _update_summary(self, history: List[Tuple[str, str]]):
+    def _build_bm25_from_chunks(self) -> BM25Retriever:
         """
-        Summarizes chat history every 3 turns to maintain long-term context 
-        without exceeding token limits.
+        Loads detailed procedural data from 'Data_Chunk/' directory to build BM25 index.
+        Uses absolute paths from Config to prevent FileNotFoundError.
         """
-        self.turn_count += 1
-        # Trigger summary every 3 turns if there is history
-        if self.turn_count % 3 == 0 and history:
-            logger.info("🧠 Summarizing conversation history...")
-            
-            # Use the last 3 turns for the new summary update
-            recent_turns = history[-3:]
-            hist_text = "\n".join([f"User: {h[0]}\nAI: {h[1]}" for h in recent_turns])
-            
-            # Combine old summary with recent chat to update context
-            full_context = f"ملخص سابق: {self.conversation_summary}\n\nمحادثة جديدة:\n{hist_text}"
-            prompt = SUMMARY_PROMPT.format(history=full_context)
-            
-            try:
-                # Generate summary
-                out = self.trans_pipeline(prompt)[0]["generated_text"]
-                # Extract summary assuming the model follows prompt structure
-                if "الملخص:" in out:
-                    new_summary = out.split("الملخص:")[-1].strip()
-                else:
-                    new_summary = out.strip() # Fallback
-
-                if new_summary:
-                    self.conversation_summary = new_summary
-                    logger.info(f"📝 Memory Updated: {self.conversation_summary[:50]}...")
-            except Exception as e:
-                logger.warning(f"Summarization failed: {e}")
-            
-            # Heavy cleanup after summarization
-            self._clean_memory()
-
-    def _translate(self, text: str, source: str, target: str) -> str:
-        """Helper for both Input and Output translation."""
-        if not text or source == target: return text
+        # FIX: Use the absolute path from Config
+        chunk_dir = Config.DATA_CHUNK_DIR
+        documents = []
         
-        lang_map = {
-            "ar": "Arabic", "en": "English", "fr": "French", "es": "Spanish",
-            "de": "German", "ru": "Russian", "zh-cn": "Chinese", "hi": "Hindi"
-        }
-        src_name = lang_map.get(source, source)
-        tgt_name = lang_map.get(target, target)
-
-        prompt = f"Translate the following {src_name} text to {tgt_name}. Provide ONLY the translation.\n\nText: {text}\n\nTranslation:"
+        logger.info(f"📂 Loading Detailed Chunks for BM25 from: {chunk_dir}")
         
-        try:
-            out = self.trans_pipeline(prompt)[0]["generated_text"]
-            if "Translation:" in out:
-                return out.split("Translation:", 1)[-1].strip()
-            return out.replace(prompt, "").strip()
-        except: 
-            return text
+        if not os.path.exists(chunk_dir):
+            logger.warning(f"⚠️ Directory {chunk_dir} not found. Sparse retrieval will be disabled.")
+            # We don't exit, just return None so the pipeline continues with Dense only
+            return None
 
-    def _rewrite_query(self, query: str, history: List[Tuple[str, str]]) -> str:
-        """Rewrites user query based on summary and recent history."""
-        if not history and not self.conversation_summary: return query
-        
-        hist_str = "\n".join([f"User: {h[0]}\nAI: {h[1]}" for h in history[-2:]])
-        prompt = CONDENSE_Q_PROMPT.format(
-            summary=self.conversation_summary,
-            chat_history=hist_str,
-            question=query
-        )
-        try:
-            out = self.trans_pipeline(prompt)[0]["generated_text"]
-            if "صياغته:" in out:
-                return out.split("صياغته:")[-1].strip() or query
-            return query
-        except: return query
+        # Iterate over all detail CSV files
+        files_processed = 0
+        for filename in os.listdir(chunk_dir):
+            if filename.endswith(".csv"): # Accept any CSV in the chunk dir
+                files_processed += 1
+                file_path = os.path.join(chunk_dir, filename)
+                try:
+                    df = pd.read_csv(file_path)
+                    # Convert each row into a rich text Document
+                    for _, row in df.iterrows():
+                        # Construct content specifically for keyword matching (BM25)
+                        # We use .get() to avoid errors if columns are missing
+                        content = (
+                            f"الخدمة: {row.get('اسم الخدمة', '')}\n"
+                            f"الخطوات: {row.get('خطوات الخدمة', '')}\n"
+                            f"المستندات: {row.get('المستندات المطلوبة', '')}\n"
+                            f"السعر: {row.get('سعر الخدمة', '')}\n"
+                            f"المتطلبات: {row.get('متطلبات الخدمة', '')}"
+                        )
+                        documents.append(Document(page_content=content, metadata={"source": filename}))
+                except Exception as e:
+                    logger.error(f"Error reading {filename}: {e}")
 
-    def _rrf_merge(self, dense_docs: List[Document], bm25_docs: List[Document], k: int = 60) -> List[Document]:
+        if not documents:
+            logger.warning(f"⚠️ No documents found in {chunk_dir} (Scanned {files_processed} files).")
+            return None
+
+        logger.info(f"✅ Built BM25 Index with {len(documents)} detailed procedures from {files_processed} files.")
+        return BM25Retriever.from_documents(documents)
+
+    def _rrf_merge(self, dense_docs: List[Document], sparse_docs: List[Document], k=60) -> List[Document]:
+        """
+        Reciprocal Rank Fusion (RRF) algorithm to merge results from Dense and Sparse retrievers.
+        """
         scores = {}
-        store = {}
         
-        def get_key(d):
-            # Safer key generation to handle missing metadata
-            s_id = d.metadata.get('service_id', 'unknown') if d.metadata else 'unknown'
-            content_sig = d.page_content[:50]
-            return f"{s_id}::{content_sig}"
-        
-        for r, d in enumerate(dense_docs, 1):
-            key = get_key(d)
-            scores[key] = scores.get(key, 0) + 1 / (k + r)
-            store[key] = d
+        # Calculate scores for Dense results
+        for rank, doc in enumerate(dense_docs):
+            content = doc.page_content
+            if content not in scores:
+                scores[content] = {"doc": doc, "score": 0.0}
+            scores[content]["score"] += 1.0 / (k + rank + 1)
             
-        # Handle case where BM25 might be None or empty
-        if bm25_docs:
-            for r, d in enumerate(bm25_docs, 1):
-                key = get_key(d)
-                scores[key] = scores.get(key, 0) + 1 / (k + r)
-                store[key] = d
-                
-        return [store[k] for k in sorted(scores, key=scores.get, reverse=True)]
-
-    def _dense_rerank(self, query: str, docs: List[Document], top_k: int = 6) -> List[Document]:
-        if not docs: return []
-        try:
-            query_vec = self.embed_model.embed_query(query)
-            scored = []
-            for d in docs[:20]: # Only rerank top 20
-                doc_vec = self.embed_model.embed_query(d.page_content)
-                norm_q = np.linalg.norm(query_vec)
-                norm_d = np.linalg.norm(doc_vec)
-                score = 0 if (norm_q == 0 or norm_d == 0) else np.dot(query_vec, doc_vec) / (norm_q * norm_d)
-                scored.append((score, d))
-            scored.sort(key=lambda x: x[0], reverse=True)
-            return [d for _, d in scored[:top_k]]
-        except: return docs[:top_k]
-
-    def _apply_text_direction(self, text: str, lang_code: str) -> str:
-        rtl_langs = ['ar', 'he', 'ur', 'fa']
-        direction = 'rtl' if lang_code in rtl_langs else 'ltr'
-        alignment = 'right' if lang_code in rtl_langs else 'left'
-        return f"<div dir='{direction}' style='text-align: {alignment};'>{text}</div>"
-
-    def answer(self, query: str, history: List[Tuple[str, str]] = []) -> str:
-        # --- Step 0: Hygiene ---
-        self._clean_memory()
+        # Calculate scores for Sparse results (if available)
+        if sparse_docs:
+            for rank, doc in enumerate(sparse_docs):
+                content = doc.page_content
+                if content not in scores:
+                    scores[content] = {"doc": doc, "score": 0.0}
+                scores[content]["score"] += 1.0 / (k + rank + 1)
         
-        # --- Step 1: Update Memory (Summarize if needed) ---
-        self._update_summary(history)
+        # Sort final results by accumulated RRF score
+        sorted_docs = sorted(scores.values(), key=lambda x: x["score"], reverse=True)
+        return [item["doc"] for item in sorted_docs[:Config.RETRIEVAL_K]]
 
-        # --- Step 2: Language Detection ---
-        if any('\u0600' <= char <= '\u06FF' for char in query):
-            user_lang = 'ar'
-        else:
-            try: user_lang = detect(query)
-            except: user_lang = 'ar'
-        
-        logger.info(f"🌍 User Language: {user_lang}")
+    def run(self, query: str, history: List[Tuple[str, str]] = []) -> str:
+        """
+        Executes the RAG pipeline:
+        1. Query Normalization
+        2. Hybrid Retrieval (Dense + Sparse)
+        3. RRF Fusion
+        4. LLM Generation
+        """
+        # Step 0: Normalize Query (Crucial for Arabic Search)
+        # This unifies Alef forms, removes diacritics, etc.
+        clean_query = normalize_arabic(query)
+        # logger.debug(f"🔍 Original Query: {query} | Normalized: {clean_query}")
 
-        # --- Step 3: Input Translation -> Arabic ---
-        q_ar = self._translate(query, source=user_lang, target='ar')
+        # Step 1: Retrieval
+        dense_results = self.dense_retriever.invoke(clean_query)
+        sparse_results = self.bm25_retriever.invoke(clean_query) if self.bm25_retriever else []
+        
+        # Step 2: Fusion (RRF)
+        final_docs = self._rrf_merge(dense_results, sparse_results)
+        
+        # Guard Clause: If no documents found, return fallback immediately
+        if not final_docs:
+            logger.warning(f"⚠️ No relevant documents found for query: {clean_query}")
+            return "عذراً، لا تتوفر لدي معلومات كافية حول هذا الموضوع في الوثائق الرسمية الحالية."
 
-        # --- Step 4: Retrieval ---
-        # Rewrite query using both Summary and Recent History
-        search_query = self._rewrite_query(q_ar, history)
-        
-        dense_res = self.dense_retriever.invoke(search_query)
-        bm25_res = self.bm25_retriever.invoke(search_query) if self.bm25_retriever else []
-        
-        merged_docs = self._rrf_merge(dense_res, bm25_res)
-        final_docs = self._dense_rerank(search_query, merged_docs, top_k=Config.RETRIEVAL_K)
-        
-        # --- Step 5: Generation (Arabic) ---
+        # Step 3: Construct Context
         context_text = "\n\n".join([f"- {d.page_content}" for d in final_docs])
         
-        # Only pass the last 3 turns + the summarized memory
-        recent_history = history[-3:] if history else []
-        history_text = "\n".join([f"User: {h[0]}\nAI: {h[1]}" for h in recent_history])
+        # Step 4: Construct Prompt with Short-term Memory
+        chat_history_text = "\n".join([f"User: {h[0]}\nAssistant: {h[1]}" for h in history[-3:]])
         
-        final_prompt = SYSTEM_PROMPT.format(
-            summary=self.conversation_summary, # The long-term memory
-            context=context_text, 
-            chat_history=history_text,         # The short-term memory
-            question=f"{search_query}"
+        # Use Centralized System Prompt from Config
+        full_prompt = Config.SYSTEM_PROMPT_TEMPLATE.format(
+            context=context_text,
+            chat_history=chat_history_text,
+            question=query # We pass original query to LLM for naturalness
         )
         
-        logger.info("🤖 Generating Arabic Answer...")
-        try:
-            raw_response = self.gen_pipeline(final_prompt)[0]["generated_text"]
-            # Robust split
-            if "[/INST]" in raw_response:
-                answer_ar = raw_response.split("[/INST]", 1)[-1].strip()
-            else:
-                answer_ar = raw_response.strip()
-        except Exception as e:
-            logger.error(f"Generation Error: {e}")
-            return "عذراً، حدث خطأ في النظام."
-
-        # --- Step 6: Output Translation ---
-        final_response = self._translate(answer_ar, source='ar', target=user_lang)
-
-        return self._apply_text_direction(final_response, user_lang)
+        # Step 5: Generation
+        logger.info("🤖 Generating response with ALLaM-7B...")
+        inputs = self.tokenizer(full_prompt, return_tensors="pt").to(self.llm.device)
+        
+        with torch.no_grad():
+            outputs = self.llm.generate(
+                **inputs,
+                max_new_tokens=512,
+                temperature=0.1,
+                do_sample=True,
+                repetition_penalty=1.1
+            )
+            
+        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
+        # Post-processing to extract only the assistant's reply
+        if "[/INST]" in response:
+            response = response.split("[/INST]")[-1].strip()
+            
+        return response
