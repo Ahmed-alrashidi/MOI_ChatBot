@@ -17,7 +17,7 @@
 
 > 🏛️ Sovereign AI | 🤖 Large Language Models | 🔎 Hybrid RAG | 🛡️ GRC Compliant | 🌍 Multilingual Ready | 🎤 Speech & TTS
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Ahmed-alrashidi/MOI_ChatBot/blob/main/Colab_Demo.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Ahmed-alrashidi/MOI_ChatBot/blob/main/chatbot_project/Colab_Demo.ipynb)
 
 > [!TIP]
 > **Try the Interactive Prototype**
