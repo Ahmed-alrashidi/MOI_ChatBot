@@ -11,8 +11,7 @@
 [![ASR - Whisper](https://img.shields.io/badge/ASR-Whisper_Large--v3-blueviolet?style=flat-square)](https://huggingface.co/openai/whisper-large-v3)
 ![TTS](https://img.shields.io/badge/TTS-ar--SA--HamedNeural-red?style=flat-square)
 [![Translation - NLLB](https://img.shields.io/badge/Translation-NLLB--200-yellow?style=flat-square)](https://huggingface.co/facebook/nllb-200-3.3B)
-[![License](https://img.shields.io/badge/License-Academic-lightgrey?style=flat-square)](#)
-
+[![License](https://img.shields.io/badge/License-MIT_Academic-lightgrey?style=flat-square)](LICENSE)
 ---
 
 > 🏛️ Sovereign AI | 🤖 Large Language Models | 🔎 Hybrid RAG | 🛡️ GRC Compliant | 🌍 Multilingual Ready | 🎤 Speech & TTS
