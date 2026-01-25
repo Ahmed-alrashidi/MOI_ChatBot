@@ -17,15 +17,6 @@
 
 > 🏛️ Sovereign AI | 🤖 Large Language Models | 🔎 Hybrid RAG | 🛡️ GRC Compliant | 🌍 Multilingual Ready | 🎤 Speech & TTS
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Ahmed-alrashidi/MOI_ChatBot/blob/main/chatbot_project/Colab_Demo.ipynb)
-
-> [!TIP]
-> **Try the Interactive Prototype**
-> Click the badge above to launch the assistant in Google Colab. For a successful run:
-> 1. **Enable GPU:** Use a T4, L4, or A100 runtime via *Runtime > Change runtime type*.
-> 2. **Authentication:** Add your `HF_TOKEN` to the **Secrets** (🔑 icon) tab on the left.
-
----
 
 ## 📖 Overview
 
