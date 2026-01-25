@@ -94,22 +94,25 @@ MOI_Universal_Assistant/
 ---
 ## 🛠️ Installation & Execution
 
-### Prerequisites
+### 1. Prerequisites
+* **Hardware:** NVIDIA GPU (A100/H100 Optimized recommended) with 16GB+ VRAM.
+* **Software:** Python 3.9+, CUDA Toolkit.
 
-- NVIDIA GPU (A100/H100 Optimized)  
-- Python 3.9+
-
-### Install Dependencies
-
+### 2. Setup & Installation
 ```bash
+# Clone the repository
+git clone [https://github.com/Ahmed-alrashidi/MOI_ChatBot.git](https://github.com/Ahmed-alrashidi/MOI_ChatBot.git)
+cd MOI_ChatBot
+
+# Install dependencies
 pip install -r requirements.txt
 ```
-### Configure Environment
+### 3. Configure Environment
 
 ```bash
 export HF_TOKEN="your_hugging_face_token"
 ```
-### Launch System
+### 4. Launch System
 
 The system handles automated hardware diagnostics and database builds on startup.
 
