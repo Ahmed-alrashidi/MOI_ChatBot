@@ -1,12 +1,11 @@
 # =========================================================================
 # File Name: data/ingestion.py
+# Purpose: ETL (Extract, Transform, Load) Pipeline for Master Data Ingestion.
 # Project: Absher Smart Assistant (MOI ChatBot)
-# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
-#
-# Affiliation: King Abdullah University of Science and Technology (KAUST)
-# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
-#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
-# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# Features:
+# - Encoding Autonomy: Robust handling of Arabic text (UTF-8, CP1256).
+# - Data Validation: Filters empty rows and ensures content integrity.
+# - Metadata Mapping: Enriches documents with Sector, Audience, and Service info.
 # =========================================================================
 
 import os
@@ -18,91 +17,124 @@ from langchain.schema import Document
 from config import Config
 from utils.logger import setup_logger
 
-# Initialize module logger
-logger = setup_logger(__name__)
+# Initialize module logger linked to project-wide Config
+logger = setup_logger("Data_Ingestor")
 
 class DataIngestor:
     """
-    Handles the ETL (Extract, Transform, Load) process specifically for the Vector Store.
-    
-    Responsibility:
-    - Reads 'Master' CSV files from the configured directory.
-    - Extracts the pre-formatted 'RAG_Content' column.
-    - Converts rows into LangChain Document objects with rich metadata.
+    Handles the ingestion of raw CSV data into the system.
+    It transforms flat tabular data (Master CSVs) into LangChain Document 
+    objects suitable for vector embedding and RAG retrieval.
     """
     
     def __init__(self):
+        """Initializes the ingestor with the master data directory from Config."""
         self.master_dir = Config.DATA_MASTER_DIR
         
-    def load_master_documents(self) -> List[Document]:
+    def _read_csv_safe(self, file_path: str) -> pd.DataFrame:
         """
-        Loads and converts Master CSV data into Documents for the Dense Vector Store.
+        Attempts to read CSV files using multiple encodings.
+        This is critical for Arabic datasets which are often exported in 
+        CP1256 (Windows Arabic) or UTF-8-SIG (Excel UTF-8).
+        
+        Args:
+            file_path: Absolute path to the CSV file.
+            
+        Returns:
+            pd.DataFrame: Loaded data or an empty DataFrame if all attempts fail.
+        """
+        encodings = ['utf-8-sig', 'utf-8', 'cp1256', 'latin1']
+        for enc in encodings:
+            try:
+                # engine='python' is used for better handling of multi-line strings or complex delimiters
+                df = pd.read_csv(file_path, encoding=enc, engine='python', on_bad_lines='skip')
+                return df
+            except UnicodeDecodeError:
+                # Silently try the next encoding in the list
+                continue
+            except Exception as e:
+                logger.error(f"❌ Read Error ({enc}) for {file_path}: {e}")
+                break
+        
+        logger.error(f"❌ Failed to read {file_path} with all attempted encodings.")
+        return pd.DataFrame()
+
+    def load_and_process(self) -> List[Document]:
+        """
+        Main orchestration method for the ingestion pipeline.
+        Steps: 1. Scan Dir -> 2. Safe Read -> 3. Clean/Fill -> 4. Map Metadata.
         
         Returns:
-            List[Document]: A list of documents ready for BGE-M3 embedding.
+            List[Document]: A list of ready-to-index LangChain Document objects.
         """
         documents = []
         
-        # Verify directory exists
+        # 1. Directory Integrity Check
         if not os.path.exists(self.master_dir):
-            logger.error(f"❌ Master Data directory not found: {self.master_dir}")
+            logger.error(f"❌ Master Data directory missing: {self.master_dir}")
             return []
 
-        # Get all CSV files in the Master directory
-        # Uses recursive glob if needed, currently flat structure
+        # 2. Scanning for Master Data CSV files
         csv_files = glob.glob(os.path.join(self.master_dir, "*.csv"))
         
         if not csv_files:
             logger.warning(f"⚠️ No CSV files found in {self.master_dir}")
             return []
             
-        logger.info(f"📂 Found {len(csv_files)} Master CSV files to process.")
+        logger.info(f"📂 Found {len(csv_files)} Master CSV files to ingest.")
 
-        # Iterate over files with a progress bar
+        # 3. Iterative Processing with Progress Bar
         for file_path in tqdm(csv_files, desc="Ingesting Master Data"):
             try:
-                # Read CSV (handling potential encoding issues automatically via pandas)
-                df = pd.read_csv(file_path)
+                # Read the CSV with robust encoding detection
+                df = self._read_csv_safe(file_path)
+                if df.empty:
+                    logger.warning(f"⚠️ Skipping empty file: {os.path.basename(file_path)}")
+                    continue
                 
-                # Validation: Ensure the critical RAG column exists
+                # Validation: 'RAG_Content' is the mandatory column for indexing
                 if "RAG_Content" not in df.columns:
                     logger.warning(f"⚠️ Skipping {os.path.basename(file_path)}: Missing 'RAG_Content' column.")
                     continue
 
-                # Process each row
+                # Data Cleaning: Convert NaNs to empty strings to avoid crashes during concatenation
+                df = df.fillna("")
+
+                # Row-by-row transformation into Document objects
                 for _, row in df.iterrows():
-                    content = row["RAG_Content"]
+                    content = str(row["RAG_Content"]).strip()
                     
-                    # Skip empty or non-string content
-                    if not isinstance(content, str) or not content.strip():
+                    # Heuristic Filter: Ensure content has enough substance to be useful (min 10 chars)
+                    if not content or len(content) < 10:
                         continue
                         
-                    # Extract Metadata from filename and columns
-                    # Filename format expected: "SectorName_Master.csv"
+                    # Metadata Extraction: Extract features to allow for advanced filtering/filtering in RAG
                     filename = os.path.basename(file_path)
-                    sector_from_filename = filename.replace("_Master.csv", "").replace(".csv", "")
+                    # Infer sector name from filename logic (e.g., Traffic_Master.csv -> Traffic)
+                    sector_name = filename.replace("_Master.csv", "").replace(".csv", "")
                     
                     metadata = {
                         "source": filename,
-                        "english_sector": sector_from_filename,
-                        "service_name": row.get("اسم الخدمة", "Unknown"),
-                        "arabic_sector": row.get("القطاع", "Unknown"),
-                        "target_audience": row.get("الجمهور المستهدف", "General")
+                        "sector_eng": sector_name,
+                        # Map Arabic columns safely to metadata keys
+                        "service_name": str(row.get("اسم الخدمة", "Unknown")).strip(),
+                        "sector_ar": str(row.get("القطاع", "Unknown")).strip(),
+                        "audience": str(row.get("الجمهور المستهدف", "General")).strip()
                     }
                     
-                    # Create the Document object
-                    doc = Document(page_content=content, metadata=metadata)
-                    documents.append(doc)
+                    # Append the processed document to the final collection
+                    documents.append(Document(page_content=content, metadata=metadata))
 
             except Exception as e:
                 logger.error(f"❌ Error processing file {file_path}: {e}")
 
-        logger.info(f"✅ Ingestion Complete. Prepared {len(documents)} documents for Vector Store.")
+        logger.info(f"✅ Ingestion Complete. Prepared {len(documents)} documents for Vector DB.")
         return documents
 
-# Helper block for standalone testing
+# Logic for direct execution / testing
 if __name__ == "__main__":
+    # Test Ingestion Flow
     ingestor = DataIngestor()
-    docs = ingestor.load_master_documents()
+    docs = ingestor.load_and_process()
     if docs:
-        print(f"\n--- Sample Document ---\nContent: {docs[0].page_content[:100]}...\nMetadata: {docs[0].metadata}")
+        print(f"\n--- Sample Ingested Document ---\nContent: {docs[0].page_content[:150]}...\nMetadata: {docs[0].metadata}")

@@ -1,0 +1,241 @@
+﻿lang,judge_score,pricing_accuracy,semantic_sim,latency,reason
+Arabic,9.0,1.0,0.962,3.83,"Score: 9
+Reason: الإجابة دقيقة تمامًا مع المعلومات الرسمية والسجلات الرسمية، باستثناء أنها لم تذكر أن المتطلبات تشمل توفر وسيلة للتواصل مثل رقم الجوال أو البريد الإلكتروني بشكل صريح كما في السجل الرسمي، لكنها ضمنتها ضمن متطلبات الهوية الرقمية."
+Arabic,9.0,1.0,0.86,4.32,"Score: 9
+Reason: الإجابة دقيقة تمامًا مع الخطوات المذكورة في ""الحقيقة الرسمية"" وتشمل أيضًا متطلبات الهوية الرقمية. السعر المذكور في الإجابة هو مجاني، مما يتطابق مع السجل الرسمي. النقطة التي يمكن تحسينها هي أن الإجابة لم تذكر بشكل صريح أن السعر يعتمد على أنه مجاني، لكن هذا لا يعتبر عيبًا كبيرًا لأن المعلومات الأخرى دقيقة."
+Arabic,8.0,0.3,0.927,4.31,"Score: 8
+Reason: الإجابة تتبع الخطوات الأساسية لتسجيل المواليد كما هو مذكور في ""الحقيقة الرسمية""، ولكنها لم تذكر أن الرسوم متغيرة حسب الخدمة. ومع ذلك، فإن عدم ذكر هذا العنصر لا يعتبر خطأ جسيمًا لأن معظم الخطوات الأخرى قد تم توضيحها بشكل صحيح."
+Arabic,9.0,0.89,0.939,6.35,"Score: 9
+Reason: الإجابة دقيقة بشكل كبير وتتطابق مع المعلومات الواردة في السجل الرسمي، باستثناء أن الإجابة لم تتضمن بعض التفاصيل الدقيقة حول متطلبات الصورة الشخصية مثل الصيغة والحجم والأبعاد، ولكنها لم تكن خاطئة أو مخالفة للحقيقة."
+Arabic,9.0,0.92,0.939,3.13,"Score: 9
+Reason: الإجابة دقيقة تمامًا فيما يتعلق بالخطوات المحددة لإصدار شهادة الوفاة، وهي متطابقة مع المعلومات الرسمية. كما أنها تؤكد أن الخدمة مجانية، مما يجعلها متوافقة مع السجل الرسمي. النقطة الوحيدة التي يمكن أن تؤدي إلى خفض درجة قليلة هي عدم ذكر المتطلبات والمستندات بشكل صريح كما هو مذكور في السجل الرسمي، ولكنها لا تزال تتوافق مع القواعد المحددة."
+Arabic,9.0,1.0,0.945,4.97,"Score: 9
+Reason: الإجابة دقيقة بشكل كبير وتتطابق مع الخطوات الواردة في ""الحقيقة الرسمية"". كما أنها تشير إلى أن الرسوم متغيرة حسب الخدمة، مما يتوافق مع القاعدة الأولى المذكورة في التعليمات. ومع ذلك، فقد نقصت بعض التفاصيل الدقيقة مثل رقم المرجعي الذي تم إنشاؤه عند حفظ الطلب، ولكن هذا لا يؤثر بشكل كبير على صحة الإجابة العامة."
+Arabic,8.0,1.0,0.825,4.58,"Score: 8
+Reason: الإجابة دقيقة بشكل عام وتتضمن الخطوات الأساسية لتسجيل العنوان الوطني، ولكنها تحتوي على بعض الاختلافات الطفيفة عن الحقيقة الرسمية، مثل طلب تفاصيل إضافية مثل الاسم والهاتف المحمول، والتي ليست ضمن الخطوات الرسمية المعطاة. ومع ذلك، لا يوجد سجل رسمي متاح في قاعدة البيانات لمقارنة الإجابة معه، مما يجعل الإجابة صحيحة بناءً على المعلومات المعطاة."
+Arabic,9.0,1.0,0.923,6.84,"Score: 9
+Reason: الإجابة تتبع الخطوات الأساسية لإتمام خدمة توصيل الوثائق كما هو مذكور في ""الحقيقة الرسمية"" و""السجل الرسمي""، مع وجود بعض الاختلافات الطفيفة في التفاصيل التي لا تؤثر على صحة الإجراءات. بالإضافة إلى ذلك، تم الإشارة إلى أن الرسوم هي رسوم ثابتة، مما يتوافق مع ""مجانية"" في السجل الرسمي."
+Arabic,8.0,1.0,0.799,3.34,"Score: 8
+Reason: الإجابة دقيقة بشكل عام وتتضمن جميع المتطلبات الأساسية المذكورة في السجل الرسمي، ولكنها تحتوي على خطوة إضافية غير موجودة في السجل الرسمي وهي اختيار التصنيف الفرعي للبلاغ."
+Arabic,9.0,0.3,0.897,6.28,"Score: 9
+Reason: الإجابة تتوافق بشكل كبير مع المعلومات الرسمية، بما في ذلك متغير رسوم الخدمة. ومع ذلك، فقد أغفلت ذكر المتطلبات التي تنص على الحاجة إلى وجود حساب فعال في أبشر والبصمة في وزارة الداخلية."
+Arabic,8.0,1.0,0.908,3.05,"Score: 8
+Reason: الإجابة تتطابق بشكل كبير مع المعلومات الرسمية، ولكنها أغفلت بعض التفاصيل مثل تحديث التطبيق إلى أحدث إصدار وتفعيل إعدادات الوصول في الجهاز. ومع ذلك، فإنها تتوافق مع السجل الرسمي للبيانات في معظم النقاط الرئيسية."
+Arabic,8.0,0.86,0.899,6.0,"Score: 8
+Reason: الإجابة تتضمن معظم الخطوات الأساسية لإصدار تأشيرة الخروج والعودة بشكل صحيح، ولكنها تحتوي على معلومات إضافية مثل متطلبات البصمة والمركبة المسجلة التي قد لا تكون ضرورية في كل حالة. بالإضافة إلى ذلك، لم يتم ذكر الرسوم المحددة (200 ريال للرحلة الواحدة) كما هو مذكور في ""الحقيقة الرسمية""."
+Arabic,9.0,1.0,0.939,4.09,"Score: 9
+Reason: الإجابة دقيقة تمامًا فيما يتعلق بالخطوات المطلوبة لتقديم الشكوى وكما هو مذكور في السجل الرسمي، مع وجود بعض الاختلافات الطفيفة في الصياغة التي لا تؤثر على المعنى العام. بالإضافة إلى ذلك، تم ذكر أن الخدمة مجانية بشكل صريح كما هو مذكور في السجل الرسمي."
+Arabic,9.0,1.0,0.907,7.02,"Score: 9
+Reason: الإجابة تتضمن جميع الخطوات الأساسية لتجديد رخصة القيادة والمتطلبات اللازمة، مع مراعاة أن السعر قد يكون متغيرًا حسب الخدمة، مما يتوافق مع القاعدة رقم 1. ومع ذلك، هناك نقطة صغيرة تم تجاهلها وهي أن الدفع يتم من خلال المدفوعات الحكومية عبر البنوك وليس ببطاقات الائتمان كما ذكر في الإجابة."
+Arabic,9.0,1.0,0.884,5.24,"Score: 9
+Reason: الإجابة دقيقة تمامًا مع الخطوات المذكورة في ""الحقيقة الرسمية""، مع إضافة بعض التفاصيل الإضافية مثل عدم استخدام الخدمة لحجز مواعيد متعددة دون سبب، والتي لا تضر ولا تتعارض مع المعلومات الرسمية. كما أنها تتطابق بشكل كامل مع السجل الرسمي للبيانات الرسمية."
+Chinese,6.0,1.0,0.778,13.42,"Score: 6
+Reason: AI的回答中提到了通过安卓智能助手来重置密码，这与官方事实中的Absher平台不符，导致信息不准确。但是AI正确地指出了服务是免费的，符合官方事实中的“服务费用：免费”。"
+Chinese,9.0,1.0,0.853,17.52,"Score: 9
+Reason: AI的回答与官方事实基本一致，详细描述了如何使用Absher平台获取数字文件，并且正确指出了服务是免费的。尽管数据库记录不可用，但AI的答案没有与官方事实产生冲突，因此符合评价标准。唯一可能扣分的地方是没有明确提到用户需要在Absher平台上拥有数字身份这一点。"
+Chinese,8.0,0.3,0.813,29.26,"Score: 8
+Reason: AI的回答基本符合官方事实，但存在一些细节上的差异，如步骤中的具体选项名称略有不同（例如，“公民身份服务”与“公民服务”的区别）。此外，AI提到的额外要求和时间限制虽然不是直接回答问题的核心内容，但提供了额外的信息，这可能对用户有用。最重要的是，AI正确地指出了服务费是“根据服务而定”，符合变量定价的指导原则。但由于数据库记录不可用，无法完全依赖其作为验证标准。"
+Chinese,8.0,0.96,0.944,43.68,"Score: 8
+Reason: AI的回答基本准确，涵盖了大部分官方事实中的步骤和要求，但缺少了服务费用的具体数额（39），并且在一些细节上略有不同，如选择标题、查看服务费用等步骤。由于数据库记录不可用，无法依据数据库权威性评分，但总体来说，AI的回答是合理的。"
+Chinese,9.0,1.0,0.833,29.34,"Score: 9
+Reason: AI的回答基本符合官方事实，步骤描述略有不同但意思一致，且明确指出服务免费，符合官方事实。但由于数据库记录不可用，无法完全依赖数据库权威性来判断正确性。"
+Chinese,8.0,0.3,0.822,24.89,"Score: 8
+Reason: AI的回答基本符合官方事实，但缺少了关于支付未付罚款的要求，并且没有明确提到需要向公民身份部门支付这笔款项。此外，AI正确地指出了服务费是根据具体服务情况而定，这符合官方事实中的“服务费：根据服务而定”的描述。但由于数据库记录不可用，无法完全依赖其作为评判标准。"
+Chinese,2.0,1.0,0.879,15.28,"Score: 2
+Reason: AI的回答中提到需要支付相关费用，而官方事实中明确表示个人注册是免费的。此外，AI提供的步骤与官方事实中的步骤存在差异，特别是关于支付费用的部分。"
+Chinese,9.0,1.0,0.8,16.22,"Score: 9
+Reason: AI的回答与官方事实基本一致，步骤描述准确，并且明确指出服务是免费的，符合官方事实中的“服务费用为：免费”。但由于AI提到的是通过安卓智能助手提交文件，而官方事实中没有提及具体的提交方式，因此扣一分以示谨慎。"
+Chinese,2.0,0.0,0.815,12.79,"Score: 2
+Reason: AI的回答与官方事实不符，步骤和内容有较大差异，并且没有提到服务是免费的。此外，数据库记录不可用，因此无法根据数据库权威性来判断正确性。"
+Chinese,9.0,0.3,0.878,17.3,"Score: 9
+Reason: AI的回答与官方事实基本一致，并且正确指出了费用是根据具体服务而定，符合变量定价的高评分标准。但由于数据库记录不可用，无法完全确认其权威性，因此扣一分。"
+Chinese,8.0,1.0,0.762,8.22,"Score: 8
+Reason: AI的回答基本符合官方事实，提到了服务是免费的，并且支持聋哑人和盲人，但是缺少了一些具体的步骤和细节，比如如何在Absher平台上找到相关服务的具体路径。由于数据库记录不可用，AI的答案与官方事实的匹配度决定了评分。"
+Chinese,3.0,0.86,0.69,36.35,"Score: 3
+Reason: AI的回答与官方事实不符，特别是在步骤描述上存在差异，并且没有提到具体的费用（单程200 SAR）。此外，AI的回答中包含了一些不清晰或重复的表述。尽管提到了支付签证费用的要求，但未能准确提供具体的操作流程和细节。"
+Chinese,9.0,1.0,0.846,16.31,"Score: 9
+Reason: AI的回答与官方事实基本一致，详细描述了投诉流程，并且正确指出了服务是免费的。但由于官方数据库记录不可用，无法完全确认其权威性，因此扣一分以示谨慎。"
+Chinese,8.0,1.0,0.928,28.02,"Score: 8
+Reason: AI的回答基本符合官方事实，但存在一些细节上的差异，例如支付方式的具体说明以及额外要求的提及，这些在官方事实中没有明确提到。由于数据库记录不可用，无法根据数据库权威性进行评分。"
+Chinese,9.0,1.0,0.822,15.32,"Score: 9
+Reason: AI的回答与官方事实基本一致，详细描述了如何通过Absher平台预约武器和爆炸物的服务，并且正确指出了该服务是免费的。尽管AI提到的是通过智能手机上的Absher智能助理进行预约，而官方事实中没有明确指出这一点，但这种表述方式并未影响整体信息的准确性。由于数据库记录不可用，无法从数据库权威性方面扣分。"
+English,9.0,1.0,0.821,3.44,"Score: 9
+Reason: The AI Answer accurately describes the password reset procedure and correctly states that the service is free. However, there is a minor discrepancy in the name of the platform (""Absher"" vs ""Abshar""), which could be due to a typographical error. Despite this, the overall information provided is correct and aligns with the Official Fact."
+English,9.0,1.0,0.833,2.89,"Score: 9
+Reason: The AI Answer accurately describes the procedure for accessing digital documents and correctly states that the service is free. However, there is a minor discrepancy in the spelling of ""Absher"" as ""Abshar,"" which could be considered a typographical error. Despite this, the information provided aligns with the Official Fact, and since the database record is not available, the AI's answer is deemed correct based on the guidelines provided."
+English,9.0,0.3,0.831,6.01,"Score: 9
+Reason: The AI Answer closely follows the official fact, including all the necessary steps and mentioning variable service fees. However, it incorrectly states ""Abshar"" instead of ""Absher"" in step 1, which is a minor error."
+English,9.0,1.0,0.868,9.74,"Score: 9
+Reason: The AI Answer accurately reflects the procedures and requirements for renewing a national ID as stated in the Official Fact, including the correct service fee of SAR 39. However, it received a minor deduction because it did not mention the exact step of agreeing to the pledge before selecting the title, which was present in the Official Fact but not explicitly detailed in the AI Answer."
+English,9.0,1.0,0.857,7.19,"Score: 9
+Reason: The AI Answer accurately reflects the procedures and requirements for issuing a death certificate as stated in the Official Fact. It correctly mentions all the necessary steps, relationships, and the fact that the service is free. However, since the Official Database Record is not available, we cannot verify if there are any discrepancies between the AI Answer and the database, which prevents a perfect score."
+English,9.0,0.3,0.896,5.92,"Score: 9
+Reason: The AI Answer closely follows the official procedure outlined in the ""Official Fact,"" including the mention of variable delivery costs. However, there are minor discrepancies such as entering ""Abshar"" instead of ""Absher"" and slight variations in step descriptions, which do not significantly affect the overall accuracy. The critical point about variable pricing was correctly identified by the AI."
+English,2.0,1.0,0.82,4.66,"Score: 2
+Reason: The AI Answer provides incorrect information regarding the steps to register a National Address and incorrectly states there is a fee of SAR 39 when the Official Fact clearly mentions it is free for individuals. Additionally, the steps provided by the AI do not align with the correct procedure outlined in the Official Fact."
+English,8.0,0.0,0.93,2.53,"Score: 8
+Reason: The AI Answer closely follows the Official Fact, but there are minor discrepancies such as misspelling ""Absher"" as ""Abshar"" and stating that a delivery fee is required when the Official Fact specifies that the service is free. However, since the Official Database Record is not available, we rely on the Official Fact, which indicates that the service should be free, thus deducting points for the incorrect mention of a delivery fee."
+English,9.0,1.0,0.856,3.57,"Score: 9
+Reason: The AI Answer accurately describes the procedure for submitting a security report and correctly states that the service is free of charge. Since the official database record is not available, we rely on the Official Fact as the ground truth, which the AI Answer closely follows without any significant discrepancies. The only reason for not scoring a perfect 10 is the slight variation in wording and the inclusion of ""Register into the Absher application,"" which is not explicitly mentioned in the Official Fact but can be reasonably inferred as part of the login process."
+English,9.0,0.3,0.881,4.45,"Score: 9
+Reason: The AI Answer accurately describes the procedure for requesting a record-free certificate, aligning closely with the Official Fact. The mention of variable pricing also adheres to the critical guidelines, earning a high score for this aspect. The only minor discrepancy is the term ""Abshar"" instead of ""Absher,"" which does not affect the overall accuracy significantly."
+English,9.0,1.0,0.876,3.46,"Score: 9
+Reason: The AI Answer accurately describes the steps to access the Personal Assistant service for both deaf and mute individuals and visually impaired users, aligning closely with the Official Fact. It also correctly states that the service is free. However, it loses a point due to minor discrepancies in terminology and slight omissions in specific requirements and documentations mentioned in the Official Fact, such as downloading the Absher application and updating it to the latest version for blind support."
+English,8.0,0.86,0.837,4.59,"Score: 8
+Reason: The AI Answer provides a generally accurate guide on how to issue an exit and re-entry visa through Absher, aligning with the Official Fact. However, it incorrectly states the platform name as ""Abshar"" instead of ""Absher,"" which could confuse users. Additionally, the AI does not specify the exact fee amount (200 SAR for a single trip), which is a minor detail but important for precision."
+English,9.0,1.0,0.847,4.02,"Score: 9
+Reason: The AI Answer accurately reflects the steps provided in the Official Fact and correctly states that the service is free. However, since there is no OFFICIAL DATABASE RECORD available, we cannot confirm if the AI's information matches an official database record, which would have been a perfect score scenario under guideline 2."
+English,8.0,1.0,0.904,6.66,"Score: 8
+Reason: The AI Answer provides a detailed and accurate procedure for renewing a driving license, closely aligning with the Official Fact. However, it mentions a ""delivery fee,"" which is not explicitly stated in the Official Fact. Additionally, the Official Database Record is not available, so we cannot use it as a reference point. The slight discrepancy about the delivery fee prevents a perfect score."
+English,9.0,1.0,0.853,3.72,"Score: 9
+Reason: The AI Answer accurately describes the procedure for scheduling weapons and explosives appointments and correctly states that the service is free. However, there is a minor discrepancy in the spelling of ""Absher"" as ""Abshar,"" which does not affect the overall accuracy but could be improved. Since the Official Database Record is not available, the AI's alignment with the Official Fact is the primary basis for scoring."
+French,9.0,0.3,0.89,11.18,"Score: 9
+Reason: L'AI a correctement décrit la procédure de réinitialisation du mot de passe et a indiqué que le service est gratuit, ce qui correspond à l'Official Fact. La seule raison pour laquelle le score n'est pas parfait est qu'il n'y avait pas de record officiel disponible dans la base de données pour confirmer directement cette information."
+French,9.0,1.0,0.87,7.94,"Score: 9
+Reason: L'answer de l'IA correspond bien aux étapes mentionnées dans l'Official Fact et indique correctement que l'accès est gratuit. La seule raison pour laquelle ce n'est pas un score parfait est qu'il y a une légère différence dans la formulation des instructions, mais cela ne change pas l'essence de l'information fournie."
+French,9.0,0.3,0.869,16.59,"Score: 9
+Reason: L'AI a correctement décrit les étapes pour enregistrer une naissance en Arabie saoudite via Absher, y compris la mention des frais variables. Cependant, il manque la précision sur le fait que les frais de service sont variables selon la prestation, ce qui aurait mérité un score parfait."
+French,9.0,0.3,0.886,30.12,"Score: 9
+Reason: L'AI a fourni une réponse détaillée qui correspond globalement aux informations officielles, couvrant toutes les étapes nécessaires pour le renouvellement de la carte d'identité nationale. La seule raison pour laquelle le score n'est pas parfait est que l'AI a ajouté des informations supplémentaires (interdiction de soumettre une autre demande pendant qu'une demande est déjà en cours, délai minimum de 180 jours avant l'expiration de la carte actuelle et la nécessité d'un lieu de résidence enregistré) qui ne sont pas mentionnées dans l'information officielle fournie. Cependant"
+French,9.0,1.0,0.796,12.74,"Score: 9
+Reason: L'AI a correctement résumé les étapes pour obtenir un acte de décès et a indiqué que le processus est gratuit, ce qui correspond à l'Official Fact. Cependant, il manque certaines informations spécifiques sur les relations familiales autorisées pour délivrer l'acte de décès, ce qui aurait pu améliorer davantage la précision de l'information."
+French,9.0,1.0,0.864,15.73,"Score: 9
+Reason: L'AI a correctement décrit les étapes pour obtenir un livret de famille pour les pères via la plateforme Absher, y compris la mention des frais variables, ce qui correspond aux critères de l'official fact. La seule raison pour laquelle le score n'est pas parfait est la non-disponibilité du [OFFICIAL DATABASE RECORD] pour vérification directe."
+French,2.0,1.0,0.882,10.1,"Score: 2
+Reason: L'AI a indiqué un tarif fixe de SAR 100 alors que l'information officielle stipule que c'est gratuit pour les particuliers. De plus, certaines étapes du processus décrites par l'IA ne correspondent pas exactement à celles mentionnées dans l'information officielle."
+French,7.0,0.0,0.722,10.03,"Score: 7
+Reason: L'AI a bien expliqué les étapes générales pour la délivrance des documents, mais elle a mentionné un prix fixe de 600 SAR pour le renouvellement de la carte d'identité, alors que l'Official Fact indique que les frais de service sont gratuits. De plus, l'[OFFICIAL DATABASE RECORD] n'est pas disponible pour vérification."
+French,8.0,1.0,0.777,11.05,"Score: 8
+Reason: L'AI a correctement décrit les étapes pour soumettre un rapport de sécurité, alignées avec les ""Official Fact"". Cependant, elle n'a pas mentionné explicitement que le service est gratuit, ce qui aurait mérité une note parfaite."
+French,5.0,1.0,0.395,2.33,"Score: [5]
+Reason: L'AI a indiqué qu'il n'avait pas assez d'informations, ce qui est correct car le [OFFICIAL DATABASE RECORD] n'est pas disponible. Cependant, il aurait pu mentionner que les frais sont variables selon la prestation, comme indiqué dans l'[Official Fact]."
+French,8.0,1.0,0.798,5.59,"Score: 8
+Reason: L'AI a correctement identifié les principaux éléments des démarches d'un assistant personnel, notamment le soutien aux personnes sourdes-muettes et aveugles via Absher. Cependant, elle n'a pas mentionné explicitement les détails spécifiques tels que l'emplacement exact des icônes sur le site Web et l'application, ni les instructions pour mettre à jour l'application et activer les paramètres d'accessibilité. De plus, l'AI n'a pas mentionné que les services sont gratuits, bien qu'elle n'ait pas été pénalisée pour cela car ce détail n'était pas nécessaire pour obtenir une note élev"
+French,7.0,0.86,0.826,13.23,"Score: 7
+Reason: L'AI a fourni une réponse générale correcte sur la façon de délivrer un visa de sortie et de rentrée via Absher, mais elle ne mentionne pas explicitement le coût fixe de 200 SAR pour un visa aller simple comme indiqué dans l'Official Fact. De plus, l'AI parle de ""visa d'entrée-sortie"" et ""sortie définitive"" qui ne correspondent pas exactement aux termes utilisés dans l'Official Fact (""visas de sortie et de rentrée"")."
+French,9.0,1.0,0.837,10.64,"Score: 9
+Reason: L'AI a correctement décrit les étapes pour déposer une plainte et a indiqué que le processus est gratuit, ce qui correspond à l'Official Fact. La seule raison pour laquelle le score n'est pas parfait est que l'official database record n'était pas disponible pour référence directe, bien que l'information fournie par l'AI soit conforme aux faits officiels."
+French,8.0,1.0,0.915,20.63,"Score: 8
+Reason: L'AI a fourni une réponse détaillée qui correspond globalement aux faits officiels, y compris l'étape de connexion à Absher, la sélection des services de trafic, la confirmation des données et la livraison par la poste. Elle a également mentionné correctement que le prix varie selon la durée choisie, ce qui mérite un score élevé selon les critères. Cependant, elle a ajouté des informations supplémentaires non mentionnées dans les faits officiels, comme le paiement des frais de livraison et l'envoi des amendes routières, ce qui a légèrement diminué son score."
+French,7.0,0.83,0.796,8.95,"Score: 7
+Reason: L'AI a correctement décrit les étapes de programmation des armes et explosifs sur la plateforme Absher, mais elle a omis de mentionner que les frais de service sont gratuits. De plus, l'AI a indiqué qu'il n'y avait pas de documents spécifiques mentionnés, alors que l'Official Fact précise clairement que le bénéficiaire doit avoir une identité numérique sur la plateforme Absher."
+German,9.0,1.0,0.872,14.19,"Score: 9
+Reason: Die AI-Antwort entspricht weitgehend dem offiziellen Fakt, einschließlich der genauen Schritte und Anforderungen. Lediglich einige kleinere sprachliche Ungenauigkeiten (z.B. ""Bestätigungscode"" statt ""Bestätigungscode"") und die fehlende Angabe, dass der offizielle Datenbankrecord nicht verfügbar war, beeinträchtigen die perfekte Punktzahl. Da jedoch der offizielle Datenbankrecord nicht verfügbar war, wird die Übereinstimmung mit dem offiziellen Fakt als korrekt angesehen."
+German,9.0,0.0,0.895,7.14,"Score: 9
+Reason: Die Antwort des AI entspricht weitgehend dem offiziellen Fakt, einschließlich der genauen Schritte zur Nutzung von digitalen Dokumenten und der Information, dass der Service kostenlos ist. Da das offizielle Datenbankrecord nicht verfügbar ist, wird die Übereinstimmung mit dem offiziellen Fakt als korrekt angesehen. Es gibt nur minimale Unterschiede in der Formulierung, was den Score nicht beeinträchtigt."
+German,9.0,1.0,0.791,15.34,"Score: 9
+Reason: Die AI-Antwort entspricht weitgehend den offiziellen Fakten und dem offiziellen Datensatz. Sie beschreibt die Prozeduren korrekt und betont, dass die Gebühren variabel sind, was den kritischen Richtlinien entspricht. Lediglich die genaue Nennung der Schritte auf der Absher-Plattform könnte leicht unterschiedlich formuliert sein, ohne jedoch die Korrektheit der Antwort zu beeinträchtigen."
+German,9.0,1.0,0.794,33.36,"Score: 9
+Reason: Die AI Antwort entspricht weitgehend den offiziellen Fakten, einschließlich der genauen Gebühr von 39 SAR. Es gibt einige geringfügige Unterschiede im Prozessablauf und den erforderlichen Dokumenten, aber diese Abweichungen sind nicht kritisch und passen gut zur offiziellen Information. Da der offizielle Datensatz nicht verfügbar ist, wird die Übereinstimmung mit den offiziellen Fakten als maßgeblich angesehen."
+German,8.0,0.92,0.71,10.9,"Score: 8
+Reason: Die AI Antwort entspricht weitgehend den offiziellen Fakten, einschließlich des kostenlosen Prozesses. Es gibt jedoch einige kleinere Ungenauigkeiten im Verfahren, wie z.B. die Auswahl der Dienste für Staatsbürgerschaft und Wohnung anstelle der Personenstandsdienste. Da der offizielle Datenbankeintrag nicht verfügbar ist, wird die Antwort als korrekt angesehen, solange sie mit den offiziellen Fakten übereinstimmt."
+German,9.0,1.0,0.798,16.42,"Score: 9
+Reason: Die AI Antwort entspricht im Wesentlichen den Schritten, die in der offiziellen Faktenangabe beschrieben sind. Insbesondere hebt sie hervor, dass die Gebühren variabel sind, was den Kriterien für eine hohe Bewertung entspricht. Lediglich einige kleinere Details unterscheiden sich leicht, aber insgesamt ist die Antwort korrekt und informativ."
+German,2.0,1.0,0.87,10.62,"Score: 2
+Reason: Die AI Antwort enthält falsche Informationen über Gebühren (SAR 100), obwohl laut offizieller Fakteninformationen die Registrierung kostenlos ist. Da es keine offizielle Datenbank gibt, die diese Information bestätigt, wird das Fehlen der Gebühreninformation negativ bewertet."
+German,9.0,0.0,0.913,10.3,"Score: 9
+Reason: Die AI Antwort entspricht weitgehend dem offiziellen Fakt, einschließlich der genauen Schritte zur Dokumentenzustellung und den Anforderungen. Die Angabe, dass die Lieferkosten kostenlos sind, stimmt auch überein. Da der offizielle Datensatz nicht verfügbar ist, wird die Übereinstimmung mit dem offiziellen Fakt als maßgeblich angesehen."
+German,8.0,0.0,0.721,10.41,"Score: 8
+Reason: Die AI Antwort entspricht weitgehend den offiziellen Fakten, einschließlich der genauen Schritte zur Erstellung eines Sicherheitsberichts. Allerdings fehlt die spezifische Erwähnung, dass der Dienst kostenlos ist, was ein kleines Detail ist, das jedoch zu einer vollständigeren Bewertung beigetragen hätte. Da der offizielle Datenbankrecord nicht verfügbar ist, wird die Antwort als korrekt angesehen, solange sie den offiziellen Fakten entspricht."
+German,7.0,1.0,0.81,9.95,"Score: 7
+Reason: Der AI-Antwort fehlen einige Details wie das Abgeben des Fingerabdrucks und die spezifische Erwähnung des ""aufzeichnungsfreien Zertifikats"". Allerdings entspricht sie weitgehend den offiziellen Schritten und berücksichtigt die variable Preisstruktur. Da der offizielle Datensatz nicht verfügbar ist, wird die Antwort als korrekt angesehen, wenn sie den offiziellen Fakten entspricht, was größtenteils der Fall ist."
+German,8.0,1.0,0.811,14.0,"Score: 8
+Reason: Die AI-Antwort entspricht im Wesentlichen den offiziellen Fakten, einschließlich der genauen Schritte zur Nutzung des persönlichen Assistentendienstes und den Anforderungen an die Anwendung. Allerdings fehlt die spezifische Erwähnung, dass der Dienst kostenlos ist, was ein kleines Detail ist, das jedoch die Vollständigkeit beeinflusst."
+German,8.0,0.86,0.836,14.36,"Score: 8
+Reason: Die AI Antwort entspricht im Großen und Ganzen den offiziellen Fakten, jedoch weicht sie in Bezug auf die Gebühren ab. Die offiziellen Fakten nennen eine feste Gebühr von 200 SAR für eine einfache Fahrt, während die AI Antwort darauf hinweist, dass die Gebühr variieren kann. Da der offizielle Datensatz nicht verfügbar ist, wird die Antwort als korrekt angesehen, da sie den offiziellen Fakten entspricht, mit Ausnahme der Gebühreninformationen, die als variabel gekennzeichnet sind."
+German,9.0,1.0,0.833,12.52,"Score: 9
+Reason: Die AI-Antwort entspricht weitgehend dem offiziellen Fakt, einschließlich des kostenlosen Verfahrens und der notwendigen Schritte auf der Absher-Plattform. Da der offizielle Datensatz nicht verfügbar ist, wird die Übereinstimmung mit dem offiziellen Fakt als korrekt angesehen. Lediglich die genaue Wortwahl und Struktur unterscheiden sich leicht, was jedoch keinen Einfluss auf die Korrektheit hat."
+German,8.0,1.0,0.865,23.72,"Score: 8
+Reason: Der AI-Antwort fehlt zwar einige Details wie die genaue Auswahl des Lizenztyps und die Bestätigung der Daten, aber sie beschreibt den Prozess der Erneuerung eines Führerscheins korrekt und hervorragend erklärt, dass der Preis variabel ist. Da das offizielle Datenbankrecord nicht verfügbar ist, wird die Antwort als korrekt angesehen, solange sie den offiziellen Fakten entspricht, was sie im Wesentlichen tut."
+German,7.0,1.0,0.825,13.54,"Score: 7
+Reason: Die AI Antwort entspricht weitgehend den offiziellen Fakten, einschließlich der genauen Schritte zur Terminvereinbarung und der kostenlosen Dienstleistung. Allerdings fehlt eine spezifische Erwähnung, dass die Dienstleistung kostenlos ist (""Die Servicegebühren sind: Kostenlos""), was den Score beeinträchtigt. Da es keine offizielle Datenbank gibt, die als Referenz verwendet werden kann, wird der Score hauptsächlich auf der Übereinstimmung mit den offiziellen Fakten basiert."
+Russian,9.0,1.0,0.83,15.91,"Score: 9
+Reason: Ответ AI соответствует официальным фактам, но отсутствие записи в базе данных не позволяет получить полную оценку. Тем не менее, информация предоставлена корректно и полностью соответствует предоставленным официальным данным."
+Russian,9.0,1.0,0.866,13.07,"Score: 9
+Reason: Ответ AI соответствует официальным фактам, за исключением небольших различий в формулировках шагов. Однако, поскольку официальная база данных недоступна, ответ AI не может быть проверен на соответствие ей. Тем не менее, он правильно указывает, что услуга бесплатна, что является ключевым аспектом."
+Russian,9.0,0.3,0.825,22.29,"Score: 9
+Reason: Ответ AI соответствует официальным фактам, кроме небольших различий в терминологии (например, ""Службы гражданства"" вместо ""Услуги гражданского состояния""). Основные шаги и информация о том, что стоимость может варьироваться, также присутствуют."
+Russian,8.0,0.82,0.688,22.27,"Score: 8
+Reason: Ответ AI соответствует большинству шагов и требований, указанных в официальном факте, но он содержит ошибку в терминологии, используя ""национальный паспорт"" вместо ""национального удостоверения личности"". Тем не менее, стоимость услуги указана правильно, и нет противоречий с официальным фактом."
+Russian,9.0,1.0,0.845,13.43,"Score: 9
+Reason: Ответ AI соответствует официальным фактам, за исключением некоторых подробностей о требованиях и документах, которые были опущены. Однако, поскольку официальная база данных недоступна, ответ AI считается правильным, если он совпадает с официальными фактами."
+Russian,5.0,0.3,0.838,19.36,"Score: 5
+Reason: AI ответил на вопрос, но не полностью соответствует официальной информации. Процесс, описанный в ответе AI, отличается от того, который указан в ""Официальном Факте"". Кроме того, AI не упомянул, что плата за обслуживание может варьироваться, хотя это было указано в ""Официальном Факте""."
+Russian,2.0,1.0,0.804,18.81,"Score: 2
+Reason: AI ответил неверно по нескольким пунктам. Во-первых, стоимость регистрации указана как 39 САР, тогда как согласно официальной информации, регистрация бесплатна для физических лиц. Во-вторых, шаги, описанные в ответе AI, отличаются от тех, что указаны в официальном факте. Кроме того, официальная база данных не доступна, поэтому мы не можем использовать её для сравнения."
+Russian,8.0,1.0,0.889,15.27,"Score: 8
+Reason: AI ответил правильно описав основные шаги для доставки документов через платформу Абшер и отметил, что сервис бесплатен. Однако, в официальном факте указано, что услуга доставки документов всегда бесплатна, тогда как в ответе AI упоминается условность бесплатности в определенный период."
+Russian,3.0,1.0,0.786,18.02,"Score: 3
+Reason: AI ответил неверно по стоимости услуги, указав, что она переменная и составляет 28 риалов, тогда как согласно официальной информации, услуга бесплатна. Кроме того, официальная база данных не доступна для проверки, поэтому основной критерий оценки - это соответствие официальным фактам."
+Russian,9.0,0.3,0.841,15.95,"Score: 9
+Reason: Ответ AI соответствует большинству шагов из официального факта, и он правильно указывает, что стоимость может варьироваться. Однако есть небольшие различия в терминологии (например, ""Государственные услуги"" против ""Общие услуги""), которые не влияют на корректность процесса."
+Russian,5.0,1.0,0.856,14.61,"Score: [5]
+Reason: [Ответ AI содержит некоторые неточности в описании процедур для использования услуги личного помощника, таких как выбор пункта «Поддержка слушателей и слабослушателей», который не соответствует официальному факту. Однако он правильно указал, что услуга бесплатна.]"
+Russian,7.0,0.86,0.859,16.86,"Score: 7
+Reason: Ответ AI содержит основные шаги для получения визы, но не упоминает конкретную сумму сбора (200 саудовских риялов) и не указывает на обязательность оплаты штрафов ГИБДД и наличия действительного паспорта. Однако, поскольку официальная база данных недоступна, ответ считается корректным, если он не противоречит официальной информации."
+Russian,9.0,1.0,0.81,16.22,"Score: 9
+Reason: Ответ AI соответствует официальному факту, включая все необходимые шаги для подачи жалобы и указание на то, что услуга бесплатна. Однако отсутствие данных в официальной базе данных означает, что мы не можем использовать критерий ""Database Authority""."
+Russian,8.0,1.0,0.929,20.75,"Score: 8
+Reason: Ответ AI соответствует большей части официального факта, но содержит небольшие различия в шагах и упоминает о возможной переменной цене, что подходит под критерий ""Variable Pricing"". Однако, отсутствие упоминания обязательного медицинского осмотра Efada снижает точность ответа."
+Russian,8.0,1.0,0.788,15.17,"Score: 8
+Reason: Ответ AI соответствует большей части официальной информации, но содержит небольшие различия в процедуре и отсутствует конкретная информация о бесплатности услуги. Тем не менее, он правильно указывает на необходимость регистрации на платформе Absher и наличие цифрового идентификатора."
+Spanish,9.0,1.0,0.86,10.23,"Score: 9
+Reason: La respuesta del AI coincide con los pasos detallados en el ""Official Fact"" y menciona correctamente que el servicio es gratuito. Sin embargo, no se puede verificar contra el ""Official Database Record"" ya que no está disponible en KG, pero esto no resta puntos ya que no hay discrepancias significativas entre la respuesta del AI y el ""Official Fact""."
+Spanish,9.0,1.0,0.832,7.97,"Score: 9
+Reason: La respuesta del AI coincide con los pasos detallados en el ""Official Fact"" y menciona correctamente que el servicio es gratuito. Sin embargo, no se pudo verificar contra el ""Official Database Record"" ya que no está disponible en KG."
+Spanish,8.0,1.0,0.849,15.76,"Score: 8
+Reason: La respuesta del AI es generalmente precisa y sigue los pasos correctos para el registro de nacimiento. Sin embargo, hay pequeñas diferencias en la terminología y en algunos detalles, como la mención de pagar multas o penalidades, que no están presentes en el ""Official Fact"". Además, el AI menciona correctamente que las tarifas son variables, lo que cumple con el criterio crítico 1."
+Spanish,9.0,0.3,0.763,18.86,"Score: 9
+Reason: El AI Answer proporciona una descripción clara y precisa de los pasos necesarios para renovar la identidad nacional, coincidiendo con los detalles proporcionados en el ""Official Fact"". Además, menciona correctamente la tarifa fija de SAR 39, lo cual es consistente con la información oficial. La única razón por la que no obtiene un puntaje perfecto es debido a pequeñas diferencias en la secuencia de los pasos y algunos detalles específicos, pero estas no afectan significativamente la precisión general de la respuesta."
+Spanish,9.0,1.0,0.863,18.73,"Score: 9
+Reason: La respuesta del AI coincide con los procedimientos y requisitos mencionados en el ""Official Fact"". Sin embargo, dado que no hay un registro oficial disponible en la base de datos ([OFFICIAL DATABASE RECORD] no está disponible en KG), no podemos verificar si la información proporcionada por el AI es exactamente correcta según la base de datos. La puntuación se reduce ligeramente debido a esta falta de verificación directa contra la base de datos oficial."
+Spanish,8.0,1.0,0.905,14.91,"Score: 8
+Reason: La respuesta del AI es generalmente precisa y sigue los pasos principales descritos en el ""Official Fact"". Sin embargo, hay pequeñas diferencias en la secuencia y descripción de algunos pasos. Además, el AI menciona correctamente que el costo puede variar según los requisitos del servicio, lo cual cumple con el criterio de ""Variable Pricing"". Como el ""Official Database Record"" no está disponible, no se puede evaluar esta parte."
+Spanish,6.0,1.0,0.787,10.19,"Score: 6
+Reason: La respuesta del AI es generalmente correcta en términos de los pasos básicos para registrar una dirección nacional, pero no coincide exactamente con los pasos detallados proporcionados en el ""Official Fact"". Además, menciona que pueden haber requisitos o condiciones adicionales dependiendo del servicio específico, lo cual podría interpretarse como ""variable"", pero esto no se especifica claramente en el ""Official Fact"". Sin embargo, dado que no hay un registro oficial disponible en la base de datos, la respuesta del AI se considera correcta en términos generales."
+Spanish,9.0,0.0,0.932,9.78,"Score: 9
+Reason: La respuesta del AI coincide con los hechos oficiales en términos de procedimientos y requisitos, y también menciona correctamente que el servicio es gratuito. Sin embargo, no se pudo verificar contra el registro oficial de la base de datos ya que no está disponible en KG."
+Spanish,9.0,1.0,0.841,9.41,"Score: 9
+Reason: El AI Answer proporciona una guía clara y precisa sobre cómo presentar un informe de seguridad, coincidiendo con los pasos detallados en el ""Official Fact"". Además, menciona correctamente que el servicio es gratuito, lo cual es consistente con el ""Official Fact"". La única razón por la que no se otorga una puntuación perfecta es porque hay una ligera diferencia en el primer paso, donde el ""Official Fact"" indica iniciar sesión, mientras que el AI Answer sugiere registrarse, aunque esto puede ser una interpretación ligeramente diferente del mismo proceso."
+Spanish,8.0,0.3,0.828,10.17,"Score: 8
+Reason: La respuesta del AI es generalmente precisa y sigue los pasos correctos para solicitar un certificado sin registros a través de Absher. Además, menciona correctamente que las tarifas son variables dependiendo del servicio, lo cual cumple con el criterio de ""Variable Pricing"". Sin embargo, hay un pequeño error en la denominación de los servicios (""Servicios Generales"" en lugar de ""Servicios Públicos""), pero esto no afecta significativamente la precisión general de la respuesta."
+Spanish,9.0,1.0,0.924,13.34,"Score: 9
+Reason: La respuesta del AI es muy precisa y detallada, coincidiendo con los procedimientos y requisitos mencionados en el ""Official Fact"". La única diferencia es que no se menciona explícitamente en el AI Answer que se debe activar la configuración de accesibilidad en el dispositivo para beneficiarse de los comandos de voz, pero esto no afecta significativamente la puntuación ya que el resto de la información es correcta y completa."
+Spanish,7.0,0.86,0.889,12.62,"Score: 7
+Reason: La respuesta del AI es generalmente correcta en términos de los pasos a seguir para solicitar una visa de salida y reingreso en Absher. Sin embargo, hay algunas desviaciones menores y falta de precisión en algunos detalles específicos, como el nombre de la plataforma (Absher no Abshar) y la mención de costos variables en lugar de un precio fijo de 200 SAR por viaje sencillo. Además, menciona la validez de la residencia como un requisito, lo cual no está incluido en los requisitos oficiales proporcionados."
+Spanish,9.0,1.0,0.828,11.62,"Score: 9
+Reason: La respuesta del AI coincide con los pasos proporcionados en el ""Official Fact"" y menciona correctamente que el servicio es gratuito. Sin embargo, no se pudo verificar contra el ""Official Database Record"" ya que no está disponible en KG."
+Spanish,8.0,1.0,0.914,20.26,"Score: 8
+Reason: El AI Answer proporciona una explicación detallada y generalmente correcta sobre cómo renovar un permiso de conducir en Arabia Saudita. Sin embargo, hay algunas diferencias menores con el ""Official Fact"". Además, el AI menciona correctamente que el precio varía según el período de renovación, lo cual cumple con el criterio de ""Variable Pricing""."
+Spanish,9.0,1.0,0.791,8.31,"Score: 9
+Reason: La respuesta del AI coincide con los pasos detallados en el ""Official Fact"" y menciona correctamente que el servicio es gratuito. Sin embargo, no se pudo verificar contra el ""Official Database Record"" ya que no está disponible en KG."
+Urdu,1.0,0.0,0.404,2.17,"Score: [1]
+Reason: [AI جواب کو OFFICIAL FACT سے مطابقت نہیں رکھتے ہیں۔ AI نے خدمتوں کے بارے میں غلط معلومات دے دی ہیں اور کسی بھی مراحل کے بارے میں کوئی تفصیل نہیں دی ہے۔]"
+Urdu,8.0,0.0,0.727,9.92,"Score: 8
+Reason: AI کا جواب کلیدی تفصیلات کو صحیح طور پر دکھائی دے رہا ہے، جیسے کہ ABSHER پلیٹ فارم کا استعمال، رقمی شناخت کی ضرورت، اور کوئی فیس نہیں ہونا۔ لیکن AI نے کچھ تفصیلات جیسے کہ کیسے لاگ ان کرنا ہے، کیسے ڈیجیٹل دستاویزات کا انتخاب"
+Urdu,9.0,1.0,0.755,4.17,"Score: 9
+Reason: AI کا جواب کل کے لئے صحیح ہے اور اس نے فیس کے بارے میں متغیر ہونے کو بھی واضح کیا ہے، لیکن اصل حقیقت میں کچھ تفصیلات موجود ہیں جو AI نے نہیں دکھائے ہیں، جیسے کہ اسپتال سے پیدائش کو مطلع کرنے کے طریقے کو مکمل کرنے کی ضرورت"
+Urdu,8.0,1.0,0.807,12.59,"Score: 8
+Reason: AI Answer provides a detailed and accurate description of the process to renew national identity, aligning closely with the Official Fact. However, it includes additional information such as ""لا يمكن للمستفيد إجراء طلب في ظل وجود طلب قائم"" (The beneficiary cannot make a request while there is an existing request) and ""تتوفر هذه الخدمة عندما يتبقى على انتهاء الهوية الوطنية 180 يومًا أو أقل"" (This service is available when there are 180 days or less left before the expiration of the national identity), which are not mentioned in the Official Fact but do not contradict it. The slight discrepancy does not affect the overall accuracy significantly."
+Urdu,1.0,0.0,0.608,6.73,"Score: [1]
+Reason: AI Answer does not address the process of obtaining a death certificate as described in the Official Fact. It instead focuses on the relationship aspect without providing any procedural steps or relevant information about the service process or requirements."
+Urdu,8.0,1.0,0.772,5.12,"Score: 8
+Reason: AI کا جواب کل کے لئے کافی صحیح ہے اور اس نے فیملی رجسٹر جاری کرنے کے طریقہ کار کو واضح طور پر بیان کیا ہے۔ AI نے کہا ہے کہ فیس متغیر ہے، جس کے لئے ہمارے کو ہای کوئٹ سکا گیا ہے۔ لیکن چونکہ OFFICIAL DATABASE RECORD نہیں موجود ہے، ا"
+Urdu,2.0,0.0,0.661,8.07,"Score: [2]
+Reason: [ای آئی کا جواب قومی ایڈریس رجسٹر کرنے کے مراحل یا فیس کے بارے میں کوئی ذکر نہیں کرتا ہے۔ اس کا جواب غیر م关联句子不匹配，用户询问的是关于注册国家地址的流程和费用，而AI的回答偏离了主题，没有提及如何注册或费用问题，因此得分较低。根据给定的评分标准，AI的回答未能提供有效的信息来匹配官方事实或数据库记录。]"
+Urdu,1.0,1.0,0.639,31.86,"Score: [1]
+Reason: AI کا جواب غیر م关联解答，根据给定的评分标准和输入信息，AI的回答与官方事实（Ground Truth）严重不符。AI的回答主要集中在获取某人或某个群体的许可来提交文件上，并没有提到ABSHER平台、电子邮件提交方式、费用等关键步骤。因此，得分非常低。此外，由于官方数据库记录不可用，这不影响评分结果。"
+Urdu,1.0,0.0,0.664,32.09,"Score: 1
+Reason: AI Answer does not match the Official Fact at all. It talks about uploading information and specifying channels of communication which are not mentioned in the Official Fact. Additionally, the Official Fact clearly states that the service is free, while the AI Answer does not mention any cost-related information."
+Urdu,2.0,0.73,0.724,10.81,"Score: 2
+Reason: AI کا جواب غلط ہے کیونکہ وہ ABSHER پلیٹ فارم کے استعمال کے بارے میں کوئی ذکر نہیں کرتا ہے اور یو ایس ایم اسپیچ کیجیٹنگ کے ذریعے سینٹرل پاس کے استعمال کو ذکر کرتا ہے جو غیر ملائم ہے۔ اس کے علاوہ، AI نے خدمت کی فیس کے بارے"
+Urdu,2.0,1.0,0.762,7.74,"Score: [2]
+Reason: [AI کا جواب صحت مند نہیں ہے کیونکہ اس نے ABSHER ایپلی کیشن کا ذکر نہیں کیا ہے اور اس نے بہت کم جزیہات کو شرح دیا ہے۔ AI نے کہا ہے کہ ایپلی کیشن کا استعمال نہیں کیا جائے گا، جبکہ اصل حقیقت میں ایپلی کیشن کا استعمال ضروری"
+Urdu,3.0,0.0,0.603,3.3,"Score: [3]
+Reason: [AI کا جواب غیر مکمل ہے اور اس میں فیس کے بارے میں کوئی ذکر نہیں ہے۔ اس کے علاوہ، AI نے بتایا کہ یہ خدمت صرف مقیمین کی طرف سے کی جا سکتی ہے، جو غلط ہے کیونکہ اصل حقیقت میں یہ کہا گیا ہے کہ یہ کارروائی ABSHER کے ذر"
+Urdu,1.0,0.29,0.714,31.78,"Score: [1]
+Reason: AI کا جواب غلط ہے کیونکہ وہ ABSHER پلیٹ فارم کے استعمال کے بارے میں کوئی معلومات نہیں دے رہا ہے اور غلط اقدامات کا ذکر کرتا ہے۔ اس کے علاوہ، ایسے کوئی بھی اقدامات نہیں ہیں جو اصل حقیقت کے مطابق ہوں۔"
+Urdu,3.0,1.0,0.817,31.82,"Score: 3
+Reason: AI کا جواب کچھ درست ہے، لیکن کئی غلط اطلاعات ہیں جیسے مارکوٹنگ سروسز کی انتخاب کرنا اور گاڑی کی ڈرائیونگ لائسنس کے بارے میں غلط اطلاعات۔ اس کے علاوہ AI نے میڈیکل امتحان کی ضرورت کو بھی نہیں ذکر کیا ہے۔"
+Urdu,1.0,1.0,0.618,31.77,"Score: 1
+Reason: AI کا جواب OFFICIAL FACT سے کامیابی سے مطابقت نہیں پائی گئی ہے۔ AI نے ABSHER پلیٹ فارم کے استعمال کے بارے میں کوئی ذکر نہیں کیا ہے اور اس نے غلط طریقے کو تشریح کیا ہے۔ AI کا جواب غیر ملکی اور غلط معلومات پر مبنی ہے۔"

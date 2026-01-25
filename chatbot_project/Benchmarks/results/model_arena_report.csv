@@ -1,0 +1,9 @@
+﻿Model,Question,Type,Lang,Latency,Semantic_Accuracy,Keyword_Recall,Hallucination_Resistance,Snippet
+ALLaM-7B,كيف أجدد جواز السفر السعودي؟,normal,ar,4.104358911514282,0.793255892638872,1.0,1.0,لتجديد جواز السفر السعودي، يجب اتباع الخطوات التالية: 1. **تسجيل الدخول إلى منصّة أبشر**. 2. **اختيا
+ALLaM-7B,How to renew Saudi passport?,normal,en,3.19838285446167,0.8136370200831948,1.0,1.0,"To renew a Saudi passport, follow these official steps: 1. Register on the Absher platform. 2. Selec"
+ALLaM-7B,كم رسوم إصدار هوية مقيم؟,normal,ar,0.4507122039794922,0.9891736512562483,1.0,1.0,رسوم إصدار هوية مقيم هي 600 ريال.
+ALLaM-7B,كيف أحصل على تأشيرة سياحية للمريخ؟,hallucination,ar,0.25960636138916016,0.7169906945525204,1.0,1.0,لا توجد معلومات.
+Qwen-2.5-7B,كيف أجدد جواز السفر السعودي؟,normal,ar,4.899322986602783,0.8067242877002575,1.0,1.0,لتجديد جواز السفر السعودي، يمكنك اتباع الخطوات التالية:  1. تسجيل الدخول إلى منصّة أبشر. 2. اختيار خ
+Qwen-2.5-7B,How to renew Saudi passport?,normal,en,5.846392869949341,0.8001835308200376,1.0,1.0,"To renew a Saudi passport, follow these steps:  1. Log in to the Absher platform. 2. Choose ""My Serv"
+Qwen-2.5-7B,كم رسوم إصدار هوية مقيم؟,normal,ar,0.6146116256713867,1.0,1.0,1.0,رسوم إصدار هوية مقيم هي 600 ريال سعودي.
+Qwen-2.5-7B,كيف أحصل على تأشيرة سياحية للمريخ؟,hallucination,ar,2.016988754272461,0.5946930429221724,1.0,1.0,لا توجد تأشيرات سياحية متاحة حاليًا للمريخ، حيث أنه لا يوجد أي وجهات سياحية مخصصة هناك بعد. يرجى الت

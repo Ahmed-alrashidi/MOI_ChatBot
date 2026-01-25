@@ -1,18 +1,22 @@
-# --- Core AI & Hardware Acceleration ---
-# PyTorch with CUDA support (A100 requires recent versions)
+# =========================================================================
+# Project: Absher Smart Assistant (MOI ChatBot)
+# Environment: Production-Ready Configuration (v4.0)
+# Target Hardware: NVIDIA A100 (Ampere Architecture)
+# Base Python: 3.9+
+# =========================================================================
+
+# --- 1. CORE AI & COMPUTE (Hardware Acceleration) ---
 torch>=2.2.0
 torchvision>=0.17.0
 torchaudio>=2.2.0
 accelerate>=0.27.0
+bitsandbytes>=0.41.0
 
-# Critical for A100 Speedup (Flash Attention 2)
-# Note: Installation might take time as it compiles CUDA kernels
-# flash-attn>=2.5.0
-
-# Vector Database (GPU Accelerated)
+# --- 2. VECTOR DATABASE & HYBRID SEARCH ---
 faiss-gpu>=1.7.2
+rank_bm25>=0.2.2
 
-# --- LLMs & NLP ---
+# --- 3. LARGE LANGUAGE MODELS (LLMs) & NLP ---
 transformers>=4.38.0
 sentencepiece>=0.2.0
 sentence-transformers>=2.5.0
@@ -20,23 +24,27 @@ tiktoken>=0.6.0
 huggingface_hub>=0.20.0
 langdetect>=1.0.9
 
-# --- Text-to-Speech ---
-gTTS>=2.5.0
+# --- 4. AUDIO PROCESSING (ASR & TTS) ---
+edge-tts>=6.1.0
+soundfile>=0.12.1
+librosa>=0.10.0
+ffmpeg-python>=0.2.0
 
-# --- RAG & Orchestration ---
-langchain>=0.3.0
-langchain-community>=0.3.0
+# --- 5. RAG & ORCHESTRATION ---
+langchain>=0.1.0
+langchain-community>=0.0.10
 langchain-huggingface>=0.0.1
 langchain-text-splitters>=0.0.1
-langchain-core>=0.3.0
+langchain-core>=0.1.0
 
-# --- Data Processing & Metrics ---
+# --- 6. DATA PROCESSING & UTILITIES ---
+numpy>=1.24.0,<2.0.0
 pandas>=2.0.0
-numpy>=1.24.0
-scikit-learn>=1.3.0  # Required for Cosine Similarity in tests
-tqdm>=4.66.0         # Required for Progress Bars
+scikit-learn>=1.3.0
+tqdm>=4.66.0
 python-dotenv>=1.0.0
+requests>=2.31.0
 
-# --- User Interface ---
-# STRICTLY PINNED: Gradio 4.x breaks the code syntax. Keep 3.50.2.
+# --- 7. USER INTERFACE ---
+pydantic<2.0.0
 gradio==3.50.2

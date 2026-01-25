@@ -1,50 +1,95 @@
-# --- Python & Environment ---
+# =========================================================================
+# File Name: .gitignore
+# Project: Absher Smart Assistant (MOI ChatBot)
+# Edition: v1.0
+# Purpose: Version Control Exclusion for Security, Privacy & Performance
+# =========================================================================
+
+# --- 1. Security & Secrets (Top Priority) 🔒 ---
+# Exclude access keys, credentials, and secrets to prevent data leaks
+.env
+.env.local
+.secrets
+*.pem
+hf_token
+auth_token.txt
+
+# --- 2. Large Models & Cache (HPC/A100 Optimized) 🏋️‍♂️ ---
+# Exclude heavy model weight directories (Models are loaded locally on the server)
+models/
+models_cache/
+hub/
+snapshots/
+xet/
+
+# Exclude large binary model weight formats
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+*.h5
+*.ckpt
+*.onnx
+
+# --- 3. Vector Database & Indices 🔍 ---
+# Exclude FAISS indices (Recommended to rebuild automatically or use Git-LFS)
+data/faiss_index/
+*.faiss
+*.pkl
+
+# --- 4. Python & Virtual Environments 🐍 ---
+# Exclude bytecode and local environment artifacts
 __pycache__/
 *.py[cod]
 *$py.class
-.env
-.venv
-env/
+.venv/
 venv/
+env/
+.anaconda/
+.conda/
+pip-log.txt
+*.egg-info/
+.coverage
 .ipynb_checkpoints/
-*.ipynb_checkpoints
 
-# --- IDE Settings ---
+# --- 5. Data & Processing Layer 📂 ---
+# Exclude temporary files and auto-processed data dumps
+data/temp/
+*.tmp
+*.log
+
+# Preserve core data directory structure (via .gitkeep files)
+!data/Data_Master/
+!data/Data_Chunk/
+!data/data_processed/services_knowledge_graph.json
+
+# --- 6. Privacy & UI Artifacts (Compliance) 🙈 ---
+# Exclude user interaction logs (Gradio) for strict privacy compliance
+flagged/
+.gradio/
+
+# --- 7. Outputs & Media 📝 ---
+# Exclude generated audio responses and session-specific media
+outputs/audio/*
+outputs/audio_cache/*
+outputs/images/*
+!outputs/audio/.gitkeep
+
+# --- 8. Benchmarks & Audit Reports 📊 ---
+# Exclude intermediate test results and temporary reports
+temp_results.csv
+retrieval_report_*.csv
+
+# Allow tracking of final validated results and ground truth datasets
+!Benchmarks/results/
+!Benchmarks/data/ground_truth_polyglot.csv
+
+# --- 9. OS & IDE Configuration 💻 ---
+# Exclude local developer environment and system-specific files
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
 *.swp
-.DS_Store
-
-# --- Project Large Data (Keep folder structure, ignore content) ---
-
-# Models
-models/*
-!models/.gitkeep
-
-# Vector Database
-data/vector_db/*
-!data/vector_db/.gitkeep
-
-# Processed Data
-data/data_processed/*
-!data/data_processed/.gitkeep
-
-# Outputs (Logs & Audio & Reports)
-outputs/logs/*
-!outputs/logs/.gitkeep
-
-outputs/audio/*
-!outputs/audio/.gitkeep
-
-outputs/benchmark_reports/*
-!outputs/benchmark_reports/.gitkeep
-
-# --- Raw Data (Private) ---
-data/Data_Master/*
-!data/Data_Master/.gitkeep
-
-data/Data_chunks/*
-!data/Data_chunks/.gitkeep
-
-# --- Ignore the Ground Truth file if it contains private info ---
-# data/ground_truth.csv
+*~

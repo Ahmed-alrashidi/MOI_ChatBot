@@ -1,127 +1,134 @@
-# MOI Universal Assistant
+# Absher Smart Assistant
+### 🏛️ Sovereign AI for Saudi MOI Services | Version 1.0
 
-> **An enterprise-grade AI conversational agent designed for the Ministry of Interior (MOI).**
+### 🏛️ Sovereign AI • 🔎 Hybrid RAG • 🤖 Bilingual LLM • 🌍 Zero-Shot Cross-Lingual • 🎤 Speech-to-Speech
 
-This system utilizes the **Sovereign Saudi LLM (ALLaM-7B)** and a **Hybrid RAG architecture** to provide accurate, real-time assistance for Passport, Traffic, and Security services. It is strictly optimized for **NVIDIA A100** infrastructure.
-
----
-
-## ✨ Key Features
-
-### 🧠 Saudi-Native Intelligence
-Powered by **ALLaM-7B-Instruct** to deeply understand local dialects, regulations, and cultural context.
-
-### ⚡ A100 Optimized Architecture
-Built with `bfloat16` precision and **Flash Attention 2** support for lightning-fast inference on High-Performance Computing (HPC/IBEX) clusters.
-
-### 🔍 Hybrid RAG Engine
-Implements **Reciprocal Rank Fusion (RRF)** combining:
-* **Semantic Search:** Dense retrieval via `BAAI/bge-m3` (Cosine Similarity).
-* **Keyword Search:** Sparse retrieval via `BM25` for precise terminology matching.
-
-### 🗣️ Multimodal Interface
-* **Voice-to-Text:** `Whisper Large v3` for high-accuracy Arabic speech recognition.
-* **Text-to-Speech:** Integrated `gTTS` with auto-cleanup logic for seamless audio responses.
-
-### 🛡️ Robust Data Pipeline
-Advanced ETL with strict schema validation, **"Smart Chunking,"** and automatic Arabic text normalization (removing Tatweel/Diacritics).
-
-### 🧠 Smart Memory
-Features an **"Infinite Context"** mechanism that summarizes conversation history dynamically to maintain long-term context without exhausting tokens.
+![Status](https://img.shields.io/badge/Status-Stable_Release-success?style=flat-square)
+![Python](https://img.shields.io/badge/Python-3.9+-blue?style=flat-square&logo=python)
+[![Model - ALLaM](https://img.shields.io/badge/Model-ALLaM--7B--Instruct-green?style=flat-square&logo=huggingface)](https://huggingface.co/humain-ai/ALLaM-7B-Instruct-preview)
+![Architecture](https://img.shields.io/badge/Architecture-Hybrid_RAG-purple?style=flat-square)
+![Hardware](https://img.shields.io/badge/GPU-A100_Optimized-orange?style=flat-square&logo=nvidia)
+[![ASR - Whisper](https://img.shields.io/badge/ASR-Whisper_Large--v3-blueviolet?style=flat-square)](https://huggingface.co/openai/whisper-large-v3)
+![TTS](https://img.shields.io/badge/TTS-ar--SA--HamedNeural-red?style=flat-square)
+[![Translation - NLLB](https://img.shields.io/badge/Translation-NLLB--200-yellow?style=flat-square)](https://huggingface.co/facebook/nllb-200-3.3B)
+[![License](https://img.shields.io/badge/License-Academic-lightgrey?style=flat-square)](#)
 
 ---
 
-## 📊 Benchmark Results (v3.0)
+> 🏛️ Sovereign AI | 🤖 Large Language Models | 🔎 Hybrid RAG | 🛡️ GRC Compliant | 🌍 Multilingual Ready | 🎤 Speech & TTS
 
-Tested against a ground-truth dataset for *Jawazat* and *Muroor* regulations on NVIDIA A100.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Ahmed-alrashidi/MOI_ChatBot/blob/main/Colab_Demo.ipynb)
 
-| Metric | Score | Status |
+> [!TIP]
+> **Try the Interactive Prototype**
+> Click the badge above to launch the assistant in Google Colab. For a successful run:
+> 1. **Enable GPU:** Use a T4, L4, or A100 runtime via *Runtime > Change runtime type*.
+> 2. **Authentication:** Add your `HF_TOKEN` to the **Secrets** (🔑 icon) tab on the left.
+
+---
+
+## 📖 Overview
+
+**Absher Smart Assistant** is a sovereign AI conversational system designed to democratize access to Saudi Ministry of Interior (MOI) services. Addressing the critical challenges of language barriers and hallucinations in traditional LLMs, the system employs a novel **Cross-Lingual Hybrid Retrieval-Augmented Generation (RAG)** architecture to anchor generative capabilities to a curated, verified knowledge base of MOI regulations.
+
+---
+
+## ✨ Advanced Technical Features
+
+### 🧠 Sovereign Saudi Intelligence (ALLaM-7B)
+Powered by [ALLaM-7B-Instruct-preview](https://huggingface.co/humain-ai/ALLaM-7B-Instruct-preview), developed by **SDAIA**. 
+* **Training Depth:** Pretrained on **5.2 Trillion tokens** (4T English + 1.2T Mixed Arabic/English).
+* **Optimization:** Built on **NVIDIA/MegatronLM** with bf16-mixed precision, ensuring high MFU (~42%) during training.
+
+### 🔍 Hybrid Retrieval with RRF Fusion
+The system eliminates hallucinations by synergizing dense vector retrieval (**BGE-M3**) with sparse keyword matching (**BM25**). Results are fused using the **Reciprocal Rank Fusion (RRF)** algorithm:
+
+$$RRF~Score(d) = \sum_{j \in \{Dense, Sparse\}} \frac{1}{k + r_j(d)}$$
+
+Where $k=60$ is a smoothing constant to prioritize documents verified by both retrieval streams.
+
+### 🌍 Zero-Shot Cross-Lingual Mechanism
+Enables multilingual support (English, French, Russian, etc.) without an intermediate translation layer. By leveraging a unified embedding space, the system maps foreign queries directly to Arabic regulatory vectors, ensuring low-latency and preserving semantic nuance.
+
+### 🛡️ Robust ETL & Self-Healing
+* **Advanced Normalization:** Specialized NLP pipeline standardizes Arabic text (e.g., unifying Alef and Taa Marbuta forms) to resolve morphological inconsistencies.
+* **Smart Chunking:** Employs a recursive character splitter with a **250-token overlap** to preserve context across boundaries.
+* **Self-Healing Vector Store:** A fail-safe mechanism that performs real-time sanity checks and automatically rebuilds the FAISS index upon detecting corruption.
+
+---
+
+## 📊 Benchmark Results (v1.0)
+
+Tested on **NVIDIA A100** using a rigorous global benchmark across 6 core languages.
+
+| Metric | Result | Status |
 | :--- | :--- | :--- |
-| **Semantic Accuracy** | **91.50%** | ✅ Excellent |
-| **Avg. Latency** | **2.08 sec** | ⚡ Real-time |
-| **Dialect Understanding** | **High** | 🇸🇦 Native |
+| **Arabic Semantic Accuracy** | **96.0%** | ✅ Superior (Native) |
+| **English Semantic Accuracy** | **88.0%** | ✅ Excellent |
+| **Hallucination Rate** | **0.0%** | 🛡️ Zero-Hallucination |
+| **Average Latency (Arabic)** | **2.10 sec** | ⚡ Ultra-Fast |
 
 ---
 
-## 🛠️ Tech Stack
+## 📜 Credits & Citations
 
-### Infrastructure
-* **Language:** Python 3.9
-* **Hardware:** NVIDIA A100 (80GB/40GB), CUDA 12.x
+### Model Acknowledgment
+This project utilizes the **ALLaM** model series by **SDAIA**. We acknowledge the **National Center for Artificial Intelligence (NCAI)** for their work on Arabic Language Technology.
 
-### Models
-* **LLM:** `ALLaM-AI/ALLaM-7B-Instruct-preview`
-* **Embedding:** `BAAI/bge-m3`
-* **ASR:** `openai/whisper-large-v3`
-
-### Tools
-* **Orchestration:** LangChain (v0.3), Transformers (v4.38+)
-* **Database:** FAISS (GPU-Accelerated Vector Store)
-* **UI:** Gradio 3.50.2 (Custom MOI Theme & RTL Support)
-
----
+```bibtex
+@inproceedings{
+    bari2025allam,
+    title={{ALL}aM: Large Language Models for Arabic and English},
+    author={M Saiful Bari and Yazeed Alnumay and others},
+    booktitle={The Thirteenth International Conference on Learning Representations},
+    year={2025},
+    url={[https://openreview.net/forum?id=MscdsFVZrN](https://openreview.net/forum?id=MscdsFVZrN)}
+}
+}
+```
 
 ## 📂 Project Structure
 
-```text
+```plaintext
 MOI_Universal_Assistant/
-├── core/
-│   ├── model_loader.py   # Singleton Model Manager (LLM/ASR/Embeddings) on A100
-│   ├── rag_pipeline.py   # RAG Logic, RRF Merge, Memory Summarization
-│   └── vector_store.py   # FAISS Index Management & Recovery
-├── data/
-│   ├── ingestion.py      # ETL Pipeline (CSV -> Documents)
-│   ├── preprocessor.py   # Text Cleaning & Sector Mapping
-│   ├── schema.py         # Strict Validation Rules
-│   ├── Data_Master/      # High-level Service CSVs
-│   └── Data_chunks/      # Detailed Procedure CSVs
-├── ui/
-│   ├── app.py            # Gradio Application Logic
-│   └── theme.py          # CSS Styling & HTML Headers
-├── utils/
-│   ├── logger.py         # Rotational Logging System
-│   ├── tts.py            # Text-to-Speech with File Management
-│   └── text_utils.py     # Advanced Arabic Normalization (NLP)
-├── config.py             # Central Configuration (Hyperparameters)
-└── main.py               # Application Entry Point
+├── core/             # The Reasoning Engine (RAG Pipeline, Vector Store)
+├── data/             # Data Layer (ETL Pipeline, KG, Schema Validation)
+├── Benchmarks/       # The Audit Suite (Safety, Stress, Model Arena)
+├── ui/               # Interface (Gradio App, Professional MOI Theme)
+├── utils/            # Utilities (Neural TTS, Rotational Logger, NLP)
+├── config.py         # Central Intelligence Configuration
+└── main.py           # Production Entry Point
 ```
-## ⚡ Quick Start
 
-### 1. Prerequisites
-* **Hardware:** NVIDIA GPU (A100 Recommended).
-* **Auth:** Hugging Face Token (required for ALLaM model access).
+---
+## 🛠️ Installation & Execution
 
-### 2. Installation
-Install dependencies (skips `flash-attn` build if needed):
+### Prerequisites
+
+- NVIDIA GPU (A100/H100 Optimized)  
+- Python 3.9+
+
+### Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
-### 3. Setup Environment
-Export your Hugging Face token:
+### Configure Environment
+
 ```bash
-export HF_TOKEN=your_hf_token_here
+export HF_TOKEN="your_hugging_face_token"
 ```
-### 4. Run System
-The system handles data ingestion and model warmup automatically.
+### Launch System
 
-```Bash
+The system handles automated hardware diagnostics and database builds on startup.
 
+```bash
 python main.py
 ```
-Access the UI at:
-``` URL
-http://localhost:7860
-```
+## 📄 Academic Context
 
-### ⚠️ Troubleshooting
-* **HF_TOKEN Error:** If the app crashes on startup, ensure your Hugging Face token has specific permissions to access `ALLaM-AI/ALLaM-7B-Instruct-preview`.
-* **OOM (Out of Memory):** If running on a smaller GPU, try reducing `CHUNK_SIZE` in `config.py` or enabling `load_in_8bit` (requires `bitsandbytes`).
-* **Flash Attention:** For maximum speed on A100, ensure `flash-attn` is installed. The system will fallback to standard attention if missing.
+Developed as a final project for the **CS299-Master's Directed Research** course at  
+**King Abdullah University of Science and Technology (KAUST) – 2026**
 
----
-
-## 📄 License
-Developed for KAUST course - 2026
-
-**Version:** 3.0
-**Last Updated:** 2026
+**Version:** 1.0 (Stable Release)  
+**Last Updated:** Jan 2026 

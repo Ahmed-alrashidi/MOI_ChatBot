@@ -1,24 +1,26 @@
 # =========================================================================
 # File Name: main.py
+# Purpose: Main Entry Point and System Orchestrator.
 # Project: Absher Smart Assistant (MOI ChatBot)
-# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
-#
-# Affiliation: King Abdullah University of Science and Technology (KAUST)
-# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
-#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
-# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# Version: 1.0 (Stable Release)
+# Features:
+# - Hardware Diagnostics: Verifies GPU readiness and A100/H100 optimizations.
+# - Automated ETL: Triggered indexing if the Vector Database is missing.
+# - Fault Tolerance: Robust error handling to ensure system stability.
+# - Resource Management: Strict VRAM cleanup and garbage collection on exit.
 # =========================================================================
 
 import os
 import sys
 import torch
 import warnings
+import gc
 
-# Suppress minor warnings for cleaner logs
+# Environment Optimization: Prevent tokenizer parallelism issues in multi-threaded environments
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 warnings.filterwarnings("ignore")
 
-# Ensure project root is in path
+# Path Configuration: Ensure the project root is accessible for relative imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from config import Config
@@ -29,105 +31,135 @@ from core.rag_pipeline import RAGPipeline
 from data.ingestion import DataIngestor
 from ui.app import create_app
 
-# Initialize Main Logger
+# Initialize the main system logger
 logger = setup_logger("Main_Launcher")
 
 def check_hardware_status():
     """
-    Diagnostics: Verifies GPU availability (A100 Preference).
+    Performs critical hardware diagnostics to ensure the environment 
+    supports high-speed inference. It specifically checks for NVIDIA 
+    Ampere/Hopper (A100/H100) GPUs to enable bfloat16 optimizations.
     """
-    print("\n" + "="*50)
-    print("   🚀 ABSHER SMART ASSISTANT - SYSTEM DIAGNOSTICS")
-    print("="*50)
+    print("\n" + "="*60)
+    print("    🚀 ABSHER SMART ASSISTANT - SOVEREIGN AI SYSTEM")
+    print("="*60)
     
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
         gpu_mem = torch.cuda.get_device_properties(0).total_memory / 1e9
         logger.info(f"✅ Hardware Detected: {gpu_name} ({gpu_mem:.2f} GB VRAM)")
         
-        if "A100" in gpu_name:
-            logger.info("🔥 OPTIMIZED: Running on NVIDIA A100 Architecture.")
+        # Optimization check for Enterprise-grade GPUs
+        if "A100" in gpu_name or "H100" in gpu_name:
+            logger.info("🔥 OPTIMIZED: Running on NVIDIA Ampere/Hopper Architecture.")
         else:
-            logger.warning(f"⚠️ Performance Warning: Running on {gpu_name}. A100 is recommended.")
+            logger.warning(f"⚠️ Performance Warning: Running on {gpu_name}. A100 is recommended for production.")
     else:
-        logger.critical("❌ CRITICAL: No GPU detected! Inference will be extremely slow.")
+        logger.critical("❌ CRITICAL: No GPU detected! Inference will be extremely slow (CPU Mode).")
 
 def ensure_vector_db_ready():
     """
-    Checks if the Vector Database exists. If not, runs the Ingestion pipeline
-    to build it from scratch using 'Data_Master'.
+    Implements a self-healing data check. If the FAISS index is missing, 
+    the system automatically triggers the Data Ingestion and Indexing 
+    pipeline to rebuild the 'Long-Term Memory' of the AI.
     """
     index_path = os.path.join(Config.VECTOR_DB_DIR, "index.faiss")
     
     if not os.path.exists(index_path):
         logger.warning("⚠️ Vector DB not found. Starting Automatic Build Process...")
         
-        # 1. Load Data
+        # 1. Trigger Data Ingestion: Extract text from Master CSVs
         logger.info("📂 Ingesting Master Data...")
         ingestor = DataIngestor()
-        documents = ingestor.load_master_documents()
+        documents = ingestor.load_and_process() 
         
         if not documents:
-            logger.error("❌ No documents found in 'Data_Master'. Please run 'prepare_data.py' first.")
+            logger.error("❌ No documents found in 'Data_Master'. Ingestion failed.")
             sys.exit(1)
             
-        # 2. Load Embedding Model
+        # 2. Load the Embedding Model for Vectorization
         logger.info("🧠 Loading Embedding Model...")
         embed_model = ModelManager.get_embedding_model()
         
-        # 3. Build Index
-        logger.info("⚡ Building FAISS Index...")
+        # 3. Build and Persist the FAISS Index
+        logger.info("⚡ Building FAISS Index (this may take a few minutes)...")
         VectorStoreManager.load_or_build(embed_model, documents)
-        logger.info("✅ Vector DB Built Successfully.")
+        logger.info("✅ Vector DB Built and Persisted Successfully.")
     else:
-        logger.info("✅ Vector DB found. Skipping ingestion.")
+        logger.info("✅ Vector DB found. Skipping automated ingestion.")
 
 def main():
     """
-    Main Execution Flow:
-    1. Hardware Check -> 2. Data Check -> 3. Load Models -> 4. Launch UI
+    Main Application Lifecycle Controller.
+    Flow: Hardware Checks -> Env Setup -> Data Prep -> Pipeline Init -> UI Launch.
     """
-    # 1. System Checks
+    # 1. Preliminary Diagnostics & Environment Setup
     check_hardware_status()
-    Config.ensure_directories()
+    Config.setup_environment()
     
-    # 2. Ensure Data Readiness
+    # 2. Verify Data Readiness (Self-Healing Check)
     ensure_vector_db_ready()
     
-    # 3. Initialize The Brain (RAG Pipeline)
-    try:
-        logger.info("🤖 Initializing RAG Pipeline (This may take a moment)...")
-        rag_system = RAGPipeline()
-    except Exception as e:
-        logger.critical(f"🔥 Failed to initialize RAG Pipeline: {e}")
-        sys.exit(1)
+    # Initialize component variables for safe resource cleanup in 'finally' block
+    rag_system = None
+    app = None
 
-    # 4. Launch UI
-    logger.info("🎨 Launching Gradio Interface...")
     try:
+        # 3. Pipeline Initialization (The Reasoning Engine)
+        logger.info("🤖 Initializing RAG Pipeline (Loading ALLaM-7B and logic modules)...")
+        rag_system = RAGPipeline()
+        
+        # 4. Interface Construction (Gradio UI)
+        logger.info("🎨 Launching Gradio Interface (Production Release v3.50.2)...")
         app = create_app(rag_system)
         
-        # Define logo path for favicon
+        # Branding: Load official favicon/logo
         logo_path = os.path.join(Config.PROJECT_ROOT, "ui", "assets", "moi_logo.png")
         if not os.path.exists(logo_path):
-            logo_path = None # Fallback if logo missing
+            logger.warning(f"⚠️ Favicon not found at: {logo_path}")
+            logo_path = None 
             
-        # Launch Options
+        # Ensure audio directories are accessible to the web server
+        if not os.path.exists(Config.AUDIO_DIR):
+            os.makedirs(Config.AUDIO_DIR, exist_ok=True)
+
+        # 5. Launch the Web Server
+        # - server_name="0.0.0.0" allows remote network access.
+        # - share=True enables a Gradio proxy for external testing.
         app.queue().launch(
-            server_name="0.0.0.0",  # Allow external connections
-            server_port=7860,       # Standard Gradio port
-            share=True,             # Generate public link
+            server_name="0.0.0.0",
+            server_port=7860,
+            share=True,
             favicon_path=logo_path,
-            allowed_paths=[Config.AUDIO_DIR] # Allow serving generated audio
+            # Critical: Allow Gradio to serve files from the audio and assets folders
+            allowed_paths=[Config.AUDIO_DIR, os.path.join(Config.PROJECT_ROOT, "ui", "assets")],
+            inbrowser=True
         )
+        
     except KeyboardInterrupt:
-        logger.info("👋 User interrupted. Shutting down...")
+        logger.info("👋 User interrupted the process (Ctrl+C). Starting safe shutdown...")
     except Exception as e:
-        logger.critical(f"❌ UI Launch Error: {e}")
+        logger.critical(f"❌ Critical System Error: {e}", exc_info=True)
     finally:
-        # Cleanup on exit
-        ModelManager.unload_all()
-        logger.info("✅ System Shutdown Complete.")
+        # --- ROBUST RESOURCE CLEANUP ---
+        # This section is vital for preventing memory leaks on shared clusters (KAUST Ibex)
+        logger.info("🧹 Starting Memory Cleanup and VRAM Release...")
+        
+        # Unload heavy models from GPU memory
+        if hasattr(ModelManager, 'unload_all'):
+            ModelManager.unload_all()
+        
+        # Clear large Python objects and trigger Garbage Collection
+        if rag_system:
+            del rag_system
+        if app:
+            del app
+            
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache() # Clear CUDA cache to free up VRAM for other users
+        
+        logger.info("✅ System Cleanup and Shutdown Complete.")
 
 if __name__ == "__main__":
     main()

@@ -1,152 +1,189 @@
 # =========================================================================
 # File Name: ui/theme.py
+# Purpose: Visual Identity, Styling, and Branding Configuration.
 # Project: Absher Smart Assistant (MOI ChatBot)
-# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
-#
-# Affiliation: King Abdullah University of Science and Technology (KAUST)
-# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
-#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
-# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# Features:
+# - Dynamic Theming: Persistent Dark/Light mode logic via JavaScript.
+# - Brand Consistency: Custom CSS for Saudi MOI colors (Emerald & Gold).
+# - Typography: Integrated 'Tajawal' Google Font for high-quality Arabic rendering.
+# - Responsive Components: Custom badges and animated status indicators.
 # =========================================================================
 
 import gradio as gr
 
-# --- 1. Custom CSS (Government Grade Design) ---
+# --- 1. JAVASCRIPT LOGIC (Client-Side) ---
+
+# THEME_JS: Handles initial theme loading based on user history or system time.
+# Logic: If no saved preference, automatically enables Dark Mode between 6 PM and 6 AM.
+THEME_JS = """
+function() {
+    const savedTheme = localStorage.getItem('moi_theme');
+    if (savedTheme) {
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark');
+        }
+    } else {
+        const hour = new Date().getHours();
+        const isNight = hour < 6 || hour >= 18;
+        if (isNight) {
+            document.body.classList.add('dark');
+        }
+    }
+    return [];
+}
+"""
+
+# TOGGLE_JS: Manages the manual switch between Light and Dark modes.
+# Saves the user's preference to 'localStorage' for persistence across sessions.
+TOGGLE_JS = """
+function() {
+    document.body.classList.toggle('dark');
+    const isDark = document.body.classList.contains('dark');
+    localStorage.setItem('moi_theme', isDark ? 'dark' : 'light');
+}
+"""
+
+# --- 2. CUSTOM CSS (UX & Branding) ---
+
+# MOI_CSS: Overrides Gradio default styles with a bespoke identity.
+# It defines CSS variables (:root) to allow seamless theme switching.
 MOI_CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap');
 
-/* Global Settings */
-body, .gradio-container { 
+:root {
+    --moi-bg: #F9FAFB;
+    --moi-card-bg: #FFFFFF;
+    --moi-text-main: #111827;
+    --moi-text-sub: #4B5563;
+    --moi-green-primary: #114b2a;
+    --moi-gold: #C5A059;
+    --moi-border: #E5E7EB;
+    --bot-bubble: #F3F4F6;
+    --user-bubble: #114b2a;
+    --user-text: #FFFFFF;
+}
+
+/* Dark Mode Color Overrides */
+body.dark {
+    --moi-bg: #0d1117;
+    --moi-card-bg: #161b22;
+    --moi-text-main: #e6edf3;
+    --moi-text-sub: #8b949e;
+    --moi-green-primary: #238636;
+    --moi-gold: #D2B48C;
+    --moi-border: #30363d;
+    --bot-bubble: #21262d;
+    --user-bubble: #238636;
+    --user-text: #FFFFFF;
+}
+
+/* Global Font & Animation Smoothing */
+body, .gradio-container, button, input, textarea { 
     font-family: 'Tajawal', sans-serif !important; 
-    background-color: #F3F4F6 !important; 
+    background-color: var(--moi-bg) !important; 
+    color: var(--moi-text-main) !important;
+    transition: all 0.2s ease-in-out;
 }
 
-/* --- Header Card --- */
+/* Header Component Styling */
 .moi-header {
-    background: linear-gradient(135deg, #114b2a 0%, #0d321d 100%); /* Deep Emerald */
+    background: linear-gradient(135deg, #0d321d 0%, #114b2a 100%);
     padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(17, 75, 42, 0.25);
-    border-bottom: 4px solid #C5A059; /* Gold Trim */
+    border-radius: 16px;
+    box-shadow: 0 10px 25px -5px rgba(17, 75, 42, 0.4);
+    border-bottom: 3px solid var(--moi-gold);
     color: white;
-    text-align: center;
     margin-bottom: 20px;
-    position: relative;
-    overflow: hidden;
-}
-
-/* Header Content Layout */
-.header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
-    position: relative;
-    z-index: 2;
 }
 
 .title-section h1 {
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: 800;
     margin: 0;
-    color: #fff;
-    letter-spacing: -0.5px;
-}
-.title-section p {
-    color: #e0e0e0;
-    margin: 5px 0 0 0;
-    font-size: 1rem;
-    opacity: 0.9;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-/* Tech Badges (Right Side) */
-.tech-badges {
-    display: flex;
-    gap: 10px;
-}
-
+/* Animated Badges for GPU and Model status */
 .badge {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 6px 12px;
-    border-radius: 8px;
+    padding: 6px 14px;
+    border-radius: 99px;
     font-size: 0.85rem;
+    color: white;
     display: flex;
     align-items: center;
-    gap: 6px;
-    backdrop-filter: blur(4px);
+    gap: 8px;
 }
 
 .badge.gpu span.dot {
-    height: 8px;
-    width: 8px;
-    background-color: #00ff88;
+    height: 8px; width: 8px; 
+    background-color: #4ade80; 
     border-radius: 50%;
-    display: inline-block;
-    box-shadow: 0 0 8px #00ff88;
-    animation: pulse 2s infinite;
+    box-shadow: 0 0 12px #4ade80;
+    animation: pulse 2s infinite; /* Pulsing effect for active GPU indicator */
 }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-@keyframes pulse {
-    0% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.6; transform: scale(1.1); }
-    100% { opacity: 1; transform: scale(1); }
-}
-
-/* --- Chat Interface --- */
+/* Chatbot Interface Polishing */
 .chatbot-container {
-    border: 1px solid #e5e7eb !important;
-    border-radius: 12px !important;
-    background: white !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--moi-border) !important;
+    border-radius: 16px !important;
+    background: var(--moi-card-bg) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
-/* User Message Bubble */
+/* Distinct Bubble Styles for User vs. AI */
 .user-message {
-    background-color: #114b2a !important; /* MOI Green */
-    color: white !important;
-    border-radius: 18px 18px 2px 18px !important;
-    padding: 10px 15px !important;
-    font-size: 1rem;
+    background-color: var(--user-bubble) !important;
+    color: var(--user-text) !important;
+    border-radius: 18px !important;
+    padding: 12px 18px !important;
 }
 
-/* Bot Message Bubble */
 .bot-message {
-    background-color: #f3f4f6 !important; /* Light Gray */
-    color: #1f2937 !important;
-    border-radius: 18px 18px 18px 2px !important;
-    border: 1px solid #e5e7eb;
-    padding: 10px 15px !important;
-    font-size: 1rem;
-    line-height: 1.6;
+    background-color: var(--bot-bubble) !important;
+    color: var(--moi-text-main) !important;
+    border-radius: 18px !important;
+    border: 1px solid var(--moi-border);
+    padding: 16px !important;
 }
 
-/* RTL Support */
-.message-wrap {
-    direction: rtl;
+/* Interactive Element Styling */
+.gradio-container input, .gradio-container textarea {
+    background-color: var(--moi-card-bg) !important;
+    border: 1px solid var(--moi-border) !important;
+    border-radius: 8px !important;
+}
+.gradio-container input:focus, .gradio-container textarea:focus {
+    border-color: var(--moi-green-primary) !important;
+    box-shadow: 0 0 0 2px rgba(17, 75, 42, 0.2) !important;
 }
 
-/* Hide Default Footer */
-footer { visibility: hidden; }
+/* UI Cleanup: Removing Gradio default footer */
+footer { display: none !important; }
 """
 
-# --- 2. HTML Header Component ---
+# --- 3. HTML HEADER (Branding Asset) ---
+
+# This HTML block is injected into the top of the app to provide 
+# official branding, including the Saudi emblem and project description.
 HEADER_HTML = """
 <div class='moi-header'>
-    <div class='header-content'>
+    <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px;'>
         <div class='title-section' style='text-align: right;'>
-            <h1>مساعد أبشر الذكي</h1>
-            <p>الذكاء الاصطناعي السيادي لخدمات وزارة الداخلية</p>
+            <div style='display:flex; align-items:center; gap:15px;'>
+                <img src='https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Emblem_of_Saudi_Arabia_%282%29.svg/150px-Emblem_of_Saudi_Arabia_%282%29.svg.png' style='height:60px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));'>
+                <div>
+                    <h1>مساعد أبشر الذكي</h1>
+                    <p style='font-size:0.95rem; opacity:0.9; margin-top:4px;'>الذكاء الاصطناعي السيادي | Sovereign AI</p>
+                </div>
+            </div>
         </div>
-        
-        <div class='tech-badges'>
+        <div style='display:flex; gap:12px; flex-wrap:wrap;'>
             <div class='badge gpu'>
                 <span class='dot'></span>
-                <span>NVIDIA A100 Online</span>
-            </div>
-            <div class='badge'>
-                <span>🧠 RAG v4.0</span>
+                <span>NVIDIA A100</span>
             </div>
             <div class='badge'>
                 <span>🇸🇦 ALLaM-7B</span>
@@ -156,18 +193,26 @@ HEADER_HTML = """
 </div>
 """
 
-# --- 3. Gradio Theme Object ---
-# Using Soft theme as base, customized with MOI colors
+# --- 4. THEME OBJECT (Python-side Config) ---
+
+# MOI_THEME: The Gradio Soft theme object.
+# Configures the primary color hues and integrates the Tajawal font via Google Fonts.
 MOI_THEME = gr.themes.Soft(
     primary_hue="emerald",
     secondary_hue="stone",
     neutral_hue="slate",
     font=[gr.themes.GoogleFont("Tajawal"), "sans-serif"]
 ).set(
+    body_background_fill="#F9FAFB",
+    block_background_fill="#FFFFFF",
+    block_border_color="#E5E7EB",
+    input_background_fill="#FFFFFF",
     button_primary_background_fill="#114b2a",
-    button_primary_background_fill_hover="#0d321d",
     button_primary_text_color="white",
-    block_title_text_color="#114b2a",
-    block_label_text_color="#114b2a",
-    input_background_fill="white"
+    body_background_fill_dark="#0d1117",
+    block_background_fill_dark="#161b22",
+    block_border_color_dark="#30363d",
+    input_background_fill_dark="#0d1117",
+    button_primary_background_fill_dark="#238636",
+    button_primary_text_color_dark="white"
 )

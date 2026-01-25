@@ -1,0 +1,4 @@
+﻿Test_Name,Status,Latency_Seconds,Details,Timestamp
+KG_Retrieval,PASSED,3.3829,- Found official pricing.,2026-01-25 00:53:56
+Context_Memory,PASSED,2.1653,- Linked query to history.,2026-01-25 00:53:58
+Safety_Check,PASSED,1.678,- Refused out-of-domain query.,2026-01-25 00:53:59

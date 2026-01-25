@@ -1,108 +1,123 @@
 # =========================================================================
 # File Name: utils/text_utils.py
+# Purpose: Advanced Arabic Text Normalization & Cleaning.
 # Project: Absher Smart Assistant (MOI ChatBot)
-# Architecture: Cross-Lingual Hybrid RAG (BGE-M3 + BM25 + ALLaM-7B)
-#
-# Affiliation: King Abdullah University of Science and Technology (KAUST)
-# Team: Ahmed AlRashidi, Sultan Alshaibani, Fahad Alqahtani, 
-#       Rakan Alharbi, Sultan Alotaibi, Abdulaziz Almutairi.
-# Advisors: Prof. Naeemullah Khan & Dr. Salman Khan
+# Features:
+# - Performance: Pre-compiled Regex patterns for high-speed batch processing.
+# - Search Optimization: Normalizes Alef, Yaa, and Ta Marbuta to unify search hits.
+# - Noise Reduction: Strips Diacritics (Tashkeel) and Kashida (Tatweel).
+# - Robustness: Handles mixed Arabic/English punctuation and invisible chars.
 # =========================================================================
 
 import re
+import string
 import unicodedata
-from typing import Optional
 
-# --- 1. Pre-compiled Regex Patterns (Performance Optimization) ---
-# Compiling patterns globally prevents re-compilation on every function call.
+# --- Pre-compile Regex Patterns (Optimized for High Performance) ---
+# Pre-compiling prevents the regex engine from re-parsing the patterns 
+# during every function call, which is critical for indexing large datasets.
 
-# Arabic Diacritics (Tashkeel)
-ARABIC_DIAC = re.compile(r"[\u0617-\u061A\u064B-\u0652\u0670\u06D6-\u06ED]")
-# Tatweel (Kashida) - Critical for normalization (e.g., "الـــسلام" -> "السلام")
-TATWEEL = re.compile(r"\u0640")
-# Zero-Width Characters (Invisible artifacts from PDFs/Web)
-ZERO_WIDTH = re.compile(r"[\u200B\u200C\u200D\u200E\u200F\uFEFF]")
+# 1. Diacritics (Tashkeel): Matches marks like Fatha, Damma, Kasra, etc.
+_DIACRITICS_PATTERN = re.compile(r"[\u064B-\u065F\u0670]")
 
-# Normalization Helpers
-ALEF_PAT = re.compile(r"[أإآٱ]")
-WHITESPACE = re.compile(r"\s+")
+# 2. Tatweel (Kashida): Matches the horizontal stretching character (ـ).
+_TATWEEL_PATTERN = re.compile(r"\u0640")
 
-# Soft Clean Patterns
-MD_BOLD_ITALIC = re.compile(r"\*{1,2}(.*?)\*{1,2}")
-MD_UNDERSCORE = re.compile(r"_+(.*?)_+")
-MD_HEADER = re.compile(r"#+\s*")
-CITATION = re.compile(r"\[cite[^\]]*\]")
+# 3. Zero-Width Characters: Matches invisible layout controls that often 
+# sneak into text copied from PDFs or web pages.
+_ZERO_WIDTH_PATTERN = re.compile(r"[\u200B\u200C\u200D\u200E\u200F\uFEFF]")
 
-def normalize_arabic(text: Optional[str]) -> str:
+# 4. Alef variants: Standardizes all forms (أ، إ، آ، ٱ) to a plain Alif (ا).
+_ALEF_PATTERN = re.compile(r"[أإآٱ]")
+
+# 5. Ta Marbuta: Normalizes 'ة' to 'ه' to handle common spelling variations.
+_TA_MARBUTA_PATTERN = re.compile(r"ة")
+
+# 6. Alif Maqsura: Normalizes 'ى' to 'ي'.
+# This is critical for search; users often search for "مستشفي" instead of "مستشفى".
+_ALIF_MAQSURA_PATTERN = re.compile(r"ى")
+
+# 7. Arabic Punctuation: Standard string.punctuation misses regional marks.
+# This pattern includes Arabic commas, semicolons, and quotes.
+_ARABIC_PUNCTUATION_PATTERN = re.compile(r"[،؟؛«»ـ–—…“”]")
+
+def remove_diacritics(text: str) -> str:
     """
-    Advanced Arabic Normalization Pipeline.
-    Optimized for Search Recall & Vector Embedding alignment.
+    Removes all Arabic diacritics (Tashkeel) from the given text.
     
-    Operations:
-    1. Unicode Normalization (NFKC).
-    2. Zero-width character removal.
-    3. Diacritics & Tatweel removal.
-    4. Letter Standardization (Alef, Ya, Taa Marbuta).
+    Args:
+        text (str): The raw Arabic string.
+        
+    Returns:
+        str: Cleaned string without diacritics.
+    """
+    if not text: return ""
+    return _DIACRITICS_PATTERN.sub('', text)
+
+def normalize_arabic(text: str) -> str:
+    """
+    The master normalization engine used by the RAG Pipeline for both 
+    indexing documents and processing user queries.
+    
+    It transforms varied Arabic writing styles into a standardized 'canonical' 
+    form to ensure a match is found regardless of user typing habits.
+
+    Args:
+        text (str): Input text (can be mixed Arabic/English).
+
+    Returns:
+        str: Fully normalized and cleaned text.
     """
     if not isinstance(text, str):
-        return ""
-    
-    # 1. Unicode Normalization
+        return str(text)
+
+    # 1. Lowercase English terms to ensure case-insensitive matching.
+    text = text.lower()
+
+    # 2. Unicode Normalization (NFKC): Ensures consistent character 
+    # representation across different operating systems.
     text = unicodedata.normalize('NFKC', text)
-    
-    # 2. Remove Zero-Width Chars
-    text = ZERO_WIDTH.sub("", text)
-    
-    # 3. Remove Diacritics
-    text = ARABIC_DIAC.sub("", text)
-    
-    # 4. Remove Tatweel (Kashida) -- NEW & CRITICAL
-    text = TATWEEL.sub("", text)
-    
-    # 5. Unify Alef
-    text = ALEF_PAT.sub("ا", text)
-    
-    # 6. Unify Ya (ى -> ي)
-    # Note: Search engines often treat them identically. 
-    # We standardize to 'ي' to match user input habits.
-    text = text.replace("ى", "ي")
-    
-    # 7. Unify Taa Marbuta (ة -> ه)
-    # Many users type "مدرسة" as "مدرسه". We standardize to 'ه'.
-    text = text.replace("ة", "ه")
-    
-    # 8. Collapse Whitespace
-    text = WHITESPACE.sub(" ", text)
-    
+
+    # 3. Noise Removal: Strip invisible control characters and Tatweel.
+    text = _ZERO_WIDTH_PATTERN.sub('', text)
+    text = _TATWEEL_PATTERN.sub('', text)
+
+    # 4. Remove Tashkeel: Marks are usually irrelevant for semantic search.
+    text = _DIACRITICS_PATTERN.sub('', text)
+
+    # 5. Character Unification (Standardization):
+    # This ensures "أحمد" and "احمد" are treated as the same word by the system.
+    text = _ALEF_PATTERN.sub('ا', text)
+    text = _TA_MARBUTA_PATTERN.sub('ه', text)
+    text = _ALIF_MAQSURA_PATTERN.sub('ي', text)
+
+    # 6. Punctuation Removal:
+    # First, handle Arabic-specific marks.
+    text = _ARABIC_PUNCTUATION_PATTERN.sub(' ', text)
+    # Second, handle standard ASCII punctuation using a fast translation table.
+    translator = str.maketrans(string.punctuation, ' ' * len(string.punctuation))
+    text = text.translate(translator)
+
+    # 7. White-space Collapsing:
+    # Converts multiple spaces/newlines into a single space for clean indexing.
+    text = " ".join(text.split())
+
     return text.strip()
 
-def soft_clean(text: Optional[str]) -> str:
-    """
-    Cleans text from formatting artifacts (Markdown, Citations, etc.).
-    Uses pre-compiled patterns for speed.
-    """
-    if not isinstance(text, str):
-        return ""
+# --- STANDALONE TESTING BLOCK ---
+if __name__ == "__main__":
+    # Sample cases representing common user input variations
+    test_cases = [
+        "كيف أجدد رخصة القيادة؟ (تجديد رخصه)",
+        "الـــســلام عــلــيــكــم",          # Kashida test
+        "أبشر أعمال vs Absher Individual", # Mixed language test
+        "مستشفى الملك فيصل",                # Alif Maqsura test
+        "يا هلا، ومرحبا!",                  # Arabic punctuation test
+        "إصدار إقامة جديدة"                  # Alef variant test
+    ]
     
-    # Markdown Cleanup
-    text = MD_BOLD_ITALIC.sub(r"\1", text)
-    text = MD_UNDERSCORE.sub(r"\1", text)
-    text = MD_HEADER.sub("", text)
-    
-    # Remove Citations
-    text = CITATION.sub("", text)
-    
-    # Collapse Whitespace
-    text = WHITESPACE.sub(" ", text)
-    
-    return text.strip()
-
-def is_arabic(text: Optional[str]) -> bool:
-    """
-    Heuristic check if text contains Arabic characters.
-    Useful for routing logic if handling mixed languages.
-    """
-    if not isinstance(text, str):
-        return False
-    # Check for presence of Arabic unicode block
-    return bool(re.search(r'[\u0600-\u06FF]', text))
+    print("--- Normalization Results for RAG Ingestion ---")
+    for t in test_cases:
+        print(f"Original: '{t}'")
+        print(f"Cleaned : '{normalize_arabic(t)}'")
+        print("-" * 30)

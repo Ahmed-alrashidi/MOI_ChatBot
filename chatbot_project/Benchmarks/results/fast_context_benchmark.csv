@@ -1,0 +1,257 @@
+Language,Scenario,Turn,Question,Context_Score,Context_Maintained,Latency
+Arabic,Passport_Renew,1,كيف أجدد جواز سفري السعودي؟,0.6495322585105896,1,4.616898059844971
+Arabic,Passport_Renew,2,كم هي الرسوم؟,0.6485540866851807,1,3.796285629272461
+Arabic,Passport_Renew,3,هل يشترط إجراء فحص طبي؟,0.5041202306747437,1,1.5881221294403076
+Arabic,Passport_Renew,4,هل يمكنني الحصول عليها تسليمها عن طريق البريد؟,0.4970826506614685,1,2.1369426250457764
+Arabic,License_Renew,1,ما هي خطوات تجديد رخصة القيادة؟,0.605121374130249,1,4.824598550796509
+Arabic,License_Renew,2,ما هي المتطلبات؟,0.6291550397872925,1,2.652392625808716
+Arabic,License_Renew,3,كم يكلف؟,0.5823447704315186,1,2.43060302734375
+Arabic,License_Renew,4,هل هناك غرامة للتأخير؟,0.5628166198730469,1,2.0755863189697266
+Arabic,Iqama_Issue,1,كيفية إصدار هوية مقيم (إقامة) جديدة؟,0.48961174488067627,1,9.371704816818237
+Arabic,Iqama_Issue,2,من يدفع الرسوم؟,0.4535475969314575,1,1.672109603881836
+Arabic,Iqama_Issue,3,هل التأمين الطبي إلزامي؟,0.3342493176460266,0,1.738795518875122
+Arabic,Iqama_Issue,4,ما هي عقوبة التأخير؟,0.36958974599838257,1,2.610059976577759
+Arabic,Traffic_Objection,1,كيف يمكنني الاعتراض على مخالفة مرورية؟,0.5967805981636047,1,2.907465696334839
+Arabic,Traffic_Objection,2,هل هناك حد زمني؟,0.5930398106575012,1,1.097649335861206
+Arabic,Traffic_Objection,3,هل أحتاج إلى الدفع أولاً؟,0.5668372511863708,1,2.718137264251709
+Arabic,Traffic_Objection,4,هل يمكنني الاعتراض مرة أخرى في حالة الرفض؟,0.47605985403060913,1,2.6410739421844482
+Arabic,National_Address,1,كيف أسجل عنواني الوطني؟,0.4890391528606415,1,4.680981159210205
+Arabic,National_Address,2,هل هناك رسوم؟,0.7207670211791992,1,0.898298978805542
+Arabic,National_Address,3,هل يمكنني التسجيل للعائلة؟,0.5268518924713135,1,3.9796111583709717
+Arabic,National_Address,4,كيفية طباعة الإثبات؟,0.5811289548873901,1,3.3364288806915283
+Arabic,Lost_ID,1,لقد فقدت هويتي الوطنية، ماذا أفعل؟,0.6385433673858643,1,7.232963800430298
+Arabic,Lost_ID,2,هل هناك غرامة؟,0.6496713161468506,1,10.328138589859009
+Arabic,Lost_ID,3,كيفية حجز موعد؟,0.6227262020111084,1,13.363191604614258
+Arabic,Lost_ID,4,الوقت لإصدار الاستبدال؟,0.4342140257358551,1,2.2777316570281982
+Arabic,Vehicle_Transfer,1,كيفية نقل ملكية السيارة؟,0.5923666954040527,1,5.852207899093628
+Arabic,Vehicle_Transfer,2,ما هو السعر؟,0.6026687622070312,1,1.7665395736694336
+Arabic,Vehicle_Transfer,3,هل يحتاج المشتري إلى ترخيص؟,0.6506237387657166,1,5.558929204940796
+Arabic,Vehicle_Transfer,4,من يدفع الرسوم؟,0.5976325273513794,1,2.0848491191864014
+Arabic,Exit_ReEntry,1,كيفية إصدار تأشيرة خروج وعودة؟,0.5912771821022034,1,5.47919225692749
+Arabic,Exit_ReEntry,2,رسوم رحلة واحدة؟,0.5778898000717163,1,3.5962398052215576
+Arabic,Exit_ReEntry,3,هل يمكنني التمديد خارج المملكة العربية السعودية؟,0.5048251152038574,1,5.0262696743011475
+Arabic,Exit_ReEntry,4,متطلبات صلاحية جواز السفر؟,0.5511425733566284,1,4.8060526847839355
+English,Passport_Renew,1,How do I renew my Saudi passport?,0.6400197744369507,1,4.587939739227295
+English,Passport_Renew,2,How much is the fee?,0.6238577961921692,1,2.8194611072540283
+English,Passport_Renew,3,Is a medical test required?,0.5081383585929871,1,1.5899646282196045
+English,Passport_Renew,4,Can I get it delivered by post?,0.4850888252258301,1,8.247574806213379
+English,License_Renew,1,What are the steps to renew a driving license?,0.5461845993995667,1,5.807577848434448
+English,License_Renew,2,What are the requirements?,0.5582725405693054,1,4.188961029052734
+English,License_Renew,3,How much does it cost?,0.5863943099975586,1,3.8580307960510254
+English,License_Renew,4,Is there a fine for delay?,0.54563969373703,1,1.8662047386169434
+English,Iqama_Issue,1,How to issue a new resident ID (Iqama)?,0.6107226014137268,1,3.8221075534820557
+English,Iqama_Issue,2,Who pays the fees?,0.6321889162063599,1,2.3294427394866943
+English,Iqama_Issue,3,Is medical insurance mandatory?,0.4804536700248718,1,2.409797430038452
+English,Iqama_Issue,4,What is the penalty for delay?,0.51395583152771,1,3.6886444091796875
+English,Traffic_Objection,1,How can I object to a traffic violation?,0.5750514268875122,1,5.231032609939575
+English,Traffic_Objection,2,Is there a time limit?,0.501278281211853,1,1.771188497543335
+English,Traffic_Objection,3,Do I need to pay first?,0.6080341339111328,1,2.440070629119873
+English,Traffic_Objection,4,Can I object again if rejected?,0.47878843545913696,1,1.5942165851593018
+English,National_Address,1,How do I register my National Address?,0.521876335144043,1,3.3872807025909424
+English,National_Address,2,Is there a fee?,0.607046365737915,1,1.650130271911621
+English,National_Address,3,Can I register for family?,0.5300900340080261,1,3.861307382583618
+English,National_Address,4,How to print the proof?,0.5528641939163208,1,4.542668342590332
+English,Lost_ID,1,"I lost my National ID, what to do?",0.6138439178466797,1,7.051787614822388
+English,Lost_ID,2,Is there a fine?,0.674480676651001,1,10.903743743896484
+English,Lost_ID,3,How to book appointment?,0.592095673084259,1,6.1982574462890625
+English,Lost_ID,4,Time to issue replacement?,0.5059356093406677,1,3.90138578414917
+English,Vehicle_Transfer,1,How to transfer car ownership?,0.5710767507553101,1,8.100210189819336
+English,Vehicle_Transfer,2,What is the price?,0.5685103535652161,1,2.118086814880371
+English,Vehicle_Transfer,3,Does buyer need license?,0.5831281542778015,1,4.147404193878174
+English,Vehicle_Transfer,4,Who pays fees?,0.574006974697113,1,3.433316946029663
+English,Exit_ReEntry,1,How to issue exit re-entry visa?,0.5788401961326599,1,5.512545347213745
+English,Exit_ReEntry,2,Fee for single trip?,0.5489302277565002,1,2.0236148834228516
+English,Exit_ReEntry,3,Can I extend outside KSA?,0.5102232098579407,1,5.6977856159210205
+English,Exit_ReEntry,4,Passport validity requirements?,0.5046232342720032,1,22.626813173294067
+Urdu,Passport_Renew,1,میں اپنے سعودی پاسپورٹ کی تجدید کیسے کروں؟,0.4121544659137726,1,5.2815539836883545
+Urdu,Passport_Renew,2,فیس کتنی ہے؟,0.46614736318588257,1,1.539243459701538
+Urdu,Passport_Renew,3,کیا میڈیکل ٹیسٹ کی ضرورت ہے؟,0.6140438318252563,1,7.114115953445435
+Urdu,Passport_Renew,4,کیا میں اسے پوسٹ کے ذریعہ پہنچا سکتا ہوں؟,0.6332288384437561,1,7.390483617782593
+Urdu,License_Renew,1,ڈرائیونگ لائسنس کی تجدید کے لئے کیا اقدامات ہیں؟,0.5886944532394409,1,32.71365427970886
+Urdu,License_Renew,2,تقاضے کیا ہیں؟,0.5601059198379517,1,8.575650215148926
+Urdu,License_Renew,3,اس کی قیمت کتنی ہے؟,0.3616921305656433,1,1.5850837230682373
+Urdu,License_Renew,4,کیا تاخیر کا جرمانہ ہے؟,0.6114258170127869,1,12.839575052261353
+Urdu,Iqama_Issue,1,ایک نیا رہائشی ID (اقامہ) کیسے جاری کریں؟,0.3843691945075989,1,5.4892168045043945
+Urdu,Iqama_Issue,2,فیس کون ادا کرتا ہے؟,0.4501025974750519,1,8.272119998931885
+Urdu,Iqama_Issue,3,کیا میڈیکل انشورنس لازمی ہے؟,0.431022047996521,1,8.098787307739258
+Urdu,Iqama_Issue,4,تاخیر کا جرمانہ کیا ہے؟,0.40641745924949646,1,5.077996492385864
+Urdu,Traffic_Objection,1,میں ٹریفک کی خلاف ورزی پر کس طرح اعتراض کرسکتا ہوں؟,0.5562431216239929,1,4.972630739212036
+Urdu,Traffic_Objection,2,کیا وقت کی حد ہے؟,0.36630553007125854,1,1.1131939888000488
+Urdu,Traffic_Objection,3,کیا مجھے پہلے ادائیگی کرنے کی ضرورت ہے؟,0.48362332582473755,1,2.3146538734436035
+Urdu,Traffic_Objection,4,اگر مسترد کردیا گیا تو کیا میں دوبارہ اعتراض کرسکتا ہوں؟,0.4567766487598419,1,2.2235846519470215
+Urdu,National_Address,1,میں اپنا قومی پتہ کیسے رجسٹر کروں؟,0.43649452924728394,1,4.337908029556274
+Urdu,National_Address,2,کیا کوئی فیس ہے؟,0.5027475357055664,1,6.738654613494873
+Urdu,National_Address,3,کیا میں کنبہ کے لئے اندراج کرسکتا ہوں؟,0.49151918292045593,1,2.1933252811431885
+Urdu,National_Address,4,ثبوت کو کس طرح پرنٹ کریں؟,0.35904309153556824,1,14.509373188018799
+Urdu,Lost_ID,1,میں نے اپنی قومی شناخت کھو دی ، کیا کرنا ہے؟,0.4558592438697815,1,1.3527472019195557
+Urdu,Lost_ID,2,کیا کوئی جرمانہ ہے؟,0.3996710479259491,1,1.5689172744750977
+Urdu,Lost_ID,3,ملاقات کا وقت کیسے لیا جائے؟,0.5820175409317017,1,9.10765290260315
+Urdu,Lost_ID,4,متبادل جاری کرنے کا وقت؟,0.5479347109794617,1,1.6077919006347656
+Urdu,Vehicle_Transfer,1,کار کی ملکیت کی منتقلی کیسے کریں؟,0.39194661378860474,1,32.53074550628662
+Urdu,Vehicle_Transfer,2,قیمت کیا ہے؟,0.4340495765209198,1,7.871877431869507
+Urdu,Vehicle_Transfer,3,کیا خریدار کو لائسنس کی ضرورت ہے؟,0.3819822669029236,1,4.771827459335327
+Urdu,Vehicle_Transfer,4,فیس کون ادا کرتا ہے؟,0.44479402899742126,1,7.125165700912476
+Urdu,Exit_ReEntry,1,دوبارہ داخل ہونے والے ویزا سے باہر نکلنے کا طریقہ کیسے؟,0.5139355659484863,1,32.76519274711609
+Urdu,Exit_ReEntry,2,ایک سفر کے لئے فیس؟,0.5498793125152588,1,33.475353479385376
+Urdu,Exit_ReEntry,3,کیا میں کے ایس اے کے باہر توسیع کرسکتا ہوں؟,0.4571521282196045,1,4.742359161376953
+Urdu,Exit_ReEntry,4,پاسپورٹ کی درستگی کی ضروریات؟,0.49972113966941833,1,5.360768795013428
+French,Passport_Renew,1,Comment renouveler mon passeport saoudien ?,0.6021501421928406,1,12.311219453811646
+French,Passport_Renew,2,Quel est le montant des frais ?,0.5985940098762512,1,9.234295845031738
+French,Passport_Renew,3,Un examen médical est-il obligatoire ?,0.5077077150344849,1,4.325293779373169
+French,Passport_Renew,4,Puis-je me le faire livrer par la poste ?,0.594307541847229,1,14.476803302764893
+French,License_Renew,1,Quelles sont les démarches pour renouveler un permis de conduire ?,0.5410581231117249,1,21.717308044433594
+French,License_Renew,2,Quelles sont les exigences ?,0.5461668372154236,1,12.01417088508606
+French,License_Renew,3,Combien ça coûte?,0.589508056640625,1,12.61894702911377
+French,License_Renew,4,Y a-t-il une amende en cas de retard ?,0.4997594654560089,1,5.139288663864136
+French,Iqama_Issue,1,Comment délivrer une nouvelle carte de résident (Iqama) ?,0.5590442419052124,1,21.779141426086426
+French,Iqama_Issue,2,Qui paie les frais ?,0.6464895606040955,1,4.023339033126831
+French,Iqama_Issue,3,L'assurance médicale est-elle obligatoire ?,0.5812650918960571,1,5.915936708450317
+French,Iqama_Issue,4,Quelle est la pénalité en cas de retard ?,0.5513061881065369,1,7.71999979019165
+French,Traffic_Objection,1,Comment puis-je m'opposer à une infraction au code de la route ?,0.5780608654022217,1,13.241986751556396
+French,Traffic_Objection,2,Y a-t-il un délai ?,0.5748651027679443,1,4.446903467178345
+French,Traffic_Objection,3,Dois-je payer en premier ?,0.5540112257003784,1,10.3627769947052
+French,Traffic_Objection,4,Puis-je m'opposer à nouveau en cas de refus ?,0.5337638854980469,1,3.194373369216919
+French,National_Address,1,Comment enregistrer mon adresse nationale ?,0.5641670227050781,1,8.88055968284607
+French,National_Address,2,Y a-t-il des frais ?,0.5762803554534912,1,4.444291591644287
+French,National_Address,3,Puis-je m'inscrire en famille ?,0.4319762587547302,1,12.614067554473877
+French,National_Address,4,Comment imprimer le BAT ?,0.46953272819519043,1,15.7284414768219
+French,Lost_ID,1,"J'ai perdu ma carte d'identité nationale, que faire ?",0.5562741756439209,1,23.198925256729126
+French,Lost_ID,2,Y a-t-il une amende ?,0.5630941987037659,1,15.436650514602661
+French,Lost_ID,3,Comment prendre rendez-vous ?,0.42263659834861755,1,11.666335105895996
+French,Lost_ID,4,Il est temps de procéder au remplacement ?,0.48736631870269775,1,21.791807174682617
+French,Vehicle_Transfer,1,Comment transférer la propriété d'une voiture ?,0.47849905490875244,1,19.447681427001953
+French,Vehicle_Transfer,2,Quel est le prix ?,0.5364547371864319,1,7.0383806228637695
+French,Vehicle_Transfer,3,L’acheteur a-t-il besoin d’une licence ?,0.4330202341079712,1,5.958025217056274
+French,Vehicle_Transfer,4,Qui paie les frais ?,0.552819013595581,1,8.881797790527344
+French,Exit_ReEntry,1,Comment délivrer un visa de sortie et de rentrée ?,0.5303259491920471,1,14.953649044036865
+French,Exit_ReEntry,2,Frais pour un seul voyage ?,0.5215983390808105,1,26.45320224761963
+French,Exit_ReEntry,3,Puis-je prolonger en dehors de l'Arabie Saoudite ?,0.43093636631965637,1,7.1111249923706055
+French,Exit_ReEntry,4,Exigences de validité du passeport ?,0.46672093868255615,1,8.438706874847412
+Spanish,Passport_Renew,1,¿Cómo renuevo mi pasaporte saudí?,0.6338625550270081,1,11.398383140563965
+Spanish,Passport_Renew,2,¿A cuánto asciende la tarifa?,0.6109199523925781,1,14.757901430130005
+Spanish,Passport_Renew,3,¿Se requiere un examen médico?,0.5243234634399414,1,4.20998215675354
+Spanish,Passport_Renew,4,¿Puedo recibirlo por correo?,0.5285787582397461,1,5.837165832519531
+Spanish,License_Renew,1,¿Cuáles son los pasos para renovar el permiso de conducir?,0.5439300537109375,1,14.557447910308838
+Spanish,License_Renew,2,¿Cuáles son los requisitos?,0.5607487559318542,1,10.646963834762573
+Spanish,License_Renew,3,¿Cuánto cuesta?,0.5698074698448181,1,11.807355403900146
+Spanish,License_Renew,4,¿Hay multa por retraso?,0.5020232796669006,1,6.835087299346924
+Spanish,Iqama_Issue,1,¿Cómo emitir una nueva identificación de residente (Iqama)?,0.5834216475486755,1,20.58742117881775
+Spanish,Iqama_Issue,2,¿Quién paga las tarifas?,0.6469051241874695,1,4.971630573272705
+Spanish,Iqama_Issue,3,¿Es obligatorio el seguro médico?,0.5463871359825134,1,8.110249519348145
+Spanish,Iqama_Issue,4,¿Cuál es la sanción por retraso?,0.5832910537719727,1,8.384906530380249
+Spanish,Traffic_Objection,1,¿Cómo puedo objetar una infracción de tránsito?,0.4782646894454956,1,13.842256307601929
+Spanish,Traffic_Objection,2,¿Hay un límite de tiempo?,0.5357260704040527,1,5.647648572921753
+Spanish,Traffic_Objection,3,¿Tengo que pagar primero?,0.6384142637252808,1,17.884049892425537
+Spanish,Traffic_Objection,4,¿Puedo oponerme nuevamente si me rechazan?,0.5306032299995422,1,7.279269218444824
+Spanish,National_Address,1,¿Cómo registro mi Dirección Nacional?,0.5161013603210449,1,8.885288715362549
+Spanish,National_Address,2,¿Hay una tarifa?,0.5071643590927124,1,3.531182289123535
+Spanish,National_Address,3,¿Puedo registrarme para la familia?,0.5654154419898987,1,13.96586012840271
+Spanish,National_Address,4,¿Cómo imprimir la prueba?,0.48019030690193176,1,6.896180868148804
+Spanish,Lost_ID,1,"Perdí mi DNI, ¿qué hacer?",0.6266034841537476,1,8.76315951347351
+Spanish,Lost_ID,2,¿Hay multa?,0.30062684416770935,0,36.20414328575134
+Spanish,Lost_ID,3,¿Cómo reservar cita?,0.6030461192131042,1,13.867948532104492
+Spanish,Lost_ID,4,¿Es hora de emitir un reemplazo?,0.5882472395896912,1,9.18730354309082
+Spanish,Vehicle_Transfer,1,¿Cómo transferir la propiedad del coche?,0.5221596956253052,1,20.578802347183228
+Spanish,Vehicle_Transfer,2,¿Cuál es el precio?,0.5220196843147278,1,7.463226795196533
+Spanish,Vehicle_Transfer,3,¿El comprador necesita licencia?,0.5475614070892334,1,14.897833585739136
+Spanish,Vehicle_Transfer,4,¿Quién paga las tarifas?,0.5409537553787231,1,8.663474082946777
+Spanish,Exit_ReEntry,1,¿Cómo emitir una visa de salida y reingreso?,0.5582638382911682,1,18.133862018585205
+Spanish,Exit_ReEntry,2,¿Tarifa por viaje sencillo?,0.5265000462532043,1,6.225148916244507
+Spanish,Exit_ReEntry,3,¿Puedo extenderme fuera de KSA?,0.4541611969470978,1,16.429835319519043
+Spanish,Exit_ReEntry,4,¿Requisitos de validez del pasaporte?,0.47778400778770447,1,8.176015615463257
+German,Passport_Renew,1,Wie erneuere ich meinen saudischen Pass?,0.5853074789047241,1,12.908069133758545
+German,Passport_Renew,2,Wie hoch ist die Gebühr?,0.6171531081199646,1,9.2298424243927
+German,Passport_Renew,3,Ist ein ärztlicher Test erforderlich?,0.5930808782577515,1,9.020325660705566
+German,Passport_Renew,4,Kann ich es per Post liefern lassen?,0.504883885383606,1,4.027207374572754
+German,License_Renew,1,Was sind die Schritte zur Erneuerung eines Führerscheins?,0.5227328538894653,1,16.55831289291382
+German,License_Renew,2,Was sind die Anforderungen?,0.5876559019088745,1,11.137445211410522
+German,License_Renew,3,Wie viel kostet es?,0.31551313400268555,0,37.36834096908569
+German,License_Renew,4,Gibt es ein Bußgeld für Verspätung?,0.5046684145927429,1,8.19132137298584
+German,Iqama_Issue,1,Wie stelle ich einen neuen Einwohnerausweis (Iqama) aus?,0.5921307802200317,1,9.06195068359375
+German,Iqama_Issue,2,Wer zahlt die Gebühren?,0.6161615252494812,1,6.242664337158203
+German,Iqama_Issue,3,Ist eine Krankenversicherung obligatorisch?,0.6868227124214172,1,7.366039037704468
+German,Iqama_Issue,4,Wie hoch ist die Strafe bei Verspätung?,0.5785028338432312,1,7.376835584640503
+German,Traffic_Objection,1,Wie kann ich einem Verkehrsverstoß widersprechen?,0.47609975934028625,1,16.608319759368896
+German,Traffic_Objection,2,Gibt es eine Frist?,0.5073928833007812,1,5.969350099563599
+German,Traffic_Objection,3,Muss ich zuerst bezahlen?,0.5000436305999756,1,10.957326412200928
+German,Traffic_Objection,4,Kann ich bei Ablehnung erneut Widerspruch einlegen?,0.4139493703842163,1,7.889252424240112
+German,National_Address,1,Wie registriere ich meine nationale Adresse?,0.5533506274223328,1,35.43248915672302
+German,National_Address,2,Gibt es eine Gebühr?,0.5369083285331726,1,3.7365987300872803
+German,National_Address,3,Kann ich mich für die Familie anmelden?,0.5425209999084473,1,13.958831071853638
+German,National_Address,4,Wie drucke ich den Nachweis aus?,0.495505690574646,1,12.982243776321411
+German,Lost_ID,1,"Ich habe meinen Personalausweis verloren, was soll ich tun?",0.6348499655723572,1,27.349050998687744
+German,Lost_ID,2,Gibt es ein Bußgeld?,0.5891100168228149,1,22.68066930770874
+German,Lost_ID,3,Wie buche ich einen Termin?,0.5970625877380371,1,11.687156915664673
+German,Lost_ID,4,Zeit für Ersatz?,0.41929104924201965,1,8.842426300048828
+German,Vehicle_Transfer,1,Wie übertrage ich den Besitz eines Autos?,0.5063482522964478,1,29.722075700759888
+German,Vehicle_Transfer,2,Wie hoch ist der Preis?,0.6139609813690186,1,9.356881380081177
+German,Vehicle_Transfer,3,Benötigt der Käufer eine Lizenz?,0.42024171352386475,1,24.97472095489502
+German,Vehicle_Transfer,4,Wer zahlt Gebühren?,0.4863138496875763,1,10.962629556655884
+German,Exit_ReEntry,1,Wie erteile ich ein Ausreise- und Wiedereinreisevisum?,0.5540218353271484,1,14.006344079971313
+German,Exit_ReEntry,2,Gebühr für Einzelfahrt?,0.5490942001342773,1,15.924840211868286
+German,Exit_ReEntry,3,Kann ich außerhalb von KSA verlängern?,0.48346009850502014,1,16.859591960906982
+German,Exit_ReEntry,4,Anforderungen an die Gültigkeit des Reisepasses?,0.5703060626983643,1,14.265645503997803
+Chinese,Passport_Renew,1,如何更新我的沙特护照？,0.688509464263916,1,18.86944079399109
+Chinese,Passport_Renew,2,费用是多少？,0.6021733283996582,1,9.778582096099854
+Chinese,Passport_Renew,3,需要进行医学检查吗？,0.5182093381881714,1,6.764495849609375
+Chinese,Passport_Renew,4,我可以邮寄吗？,0.6118359565734863,1,28.444640159606934
+Chinese,License_Renew,1,更新驾驶执照的步骤是什么？,0.5317673683166504,1,23.808736562728882
+Chinese,License_Renew,2,有什么要求？,0.26582270860671997,0,37.26650953292847
+Chinese,License_Renew,3,它要多少钱？,0.6409846544265747,1,15.766483783721924
+Chinese,License_Renew,4,延误了会被罚款吗？,0.47712647914886475,1,10.71486234664917
+Chinese,Iqama_Issue,1,如何签发新的居民身份证（Iqama）？,0.490480899810791,1,19.285223960876465
+Chinese,Iqama_Issue,2,谁支付费用？,0.49445268511772156,1,25.720842838287354
+Chinese,Iqama_Issue,3,医疗保险是强制性的吗？,0.6125761866569519,1,11.027031183242798
+Chinese,Iqama_Issue,4,延误的处罚是什么？,0.4406980276107788,1,7.679006099700928
+Chinese,Traffic_Objection,1,怎样才能对交通违法行为提出异议？,0.5227596759796143,1,27.04667901992798
+Chinese,Traffic_Objection,2,有时间限制吗？,0.5241972804069519,1,9.772927045822144
+Chinese,Traffic_Objection,3,我需要先付款吗？,0.340057909488678,0,35.7252721786499
+Chinese,Traffic_Objection,4,如果被拒绝我可以再次反对吗？,0.347125381231308,0,35.173561811447144
+Chinese,National_Address,1,如何注册我的国内地址？,0.4808952808380127,1,12.798763275146484
+Chinese,National_Address,2,有收费吗？,0.607938826084137,1,4.893200397491455
+Chinese,National_Address,3,我可以为家人报名吗？,0.5026857852935791,1,20.846333980560303
+Chinese,National_Address,4,如何打印校样？,0.3465096354484558,0,12.55139446258545
+Chinese,Lost_ID,1,我丢失了国民身份证，该怎么办？,0.6361218690872192,1,30.851969957351685
+Chinese,Lost_ID,2,有罚款吗？,0.6479811072349548,1,37.30809307098389
+Chinese,Lost_ID,3,如何预约？,0.6194547414779663,1,38.659987449645996
+Chinese,Lost_ID,4,是时候发出更换了吗？,0.6311501264572144,1,15.31093430519104
+Chinese,Vehicle_Transfer,1,汽车所有权如何过户？,0.606875479221344,1,29.602691650390625
+Chinese,Vehicle_Transfer,2,价格是多少？,0.5559572577476501,1,11.343821287155151
+Chinese,Vehicle_Transfer,3,买家需要许可证吗？,0.5226624608039856,1,7.366522312164307
+Chinese,Vehicle_Transfer,4,谁支付费用？,0.6348445415496826,1,5.480381727218628
+Chinese,Exit_ReEntry,1,如何办理出境再入境签证？,0.5404602289199829,1,29.673874139785767
+Chinese,Exit_ReEntry,2,单程收费吗？,0.578758716583252,1,23.074140787124634
+Chinese,Exit_ReEntry,3,我可以在沙特阿拉伯以外的地方延期吗？,0.31472501158714294,0,40.52520680427551
+Chinese,Exit_ReEntry,4,护照有效期要求？,0.3590701222419739,1,18.05251383781433
+Russian,Passport_Renew,1,Как мне продлить свой саудовский паспорт?,0.6312070488929749,1,17.09724521636963
+Russian,Passport_Renew,2,Сколько стоит плата?,0.6765710711479187,1,20.381601572036743
+Russian,Passport_Renew,3,Требуется ли медицинское обследование?,0.5354437232017517,1,9.809483528137207
+Russian,Passport_Renew,4,Могу ли я получить его по почте?,0.5790536403656006,1,9.870177984237671
+Russian,License_Renew,1,Каковы шаги по продлению водительских прав?,0.5125287771224976,1,21.64710569381714
+Russian,License_Renew,2,Каковы требования?,0.5515108704566956,1,19.915769815444946
+Russian,License_Renew,3,Сколько это стоит?,0.6208934783935547,1,15.982377052307129
+Russian,License_Renew,4,Предусмотрен ли штраф за просрочку?,0.5112064480781555,1,13.527517557144165
+Russian,Iqama_Issue,1,Как выдать новое удостоверение личности (икама)?,0.5337227582931519,1,22.634166955947876
+Russian,Iqama_Issue,2,Кто платит сборы?,0.6126329302787781,1,8.007116794586182
+Russian,Iqama_Issue,3,Является ли медицинская страховка обязательной?,0.6273117065429688,1,5.37314772605896
+Russian,Iqama_Issue,4,Какой штраф за просрочку?,0.4595141112804413,1,11.483541488647461
+Russian,Traffic_Objection,1,Как я могу возразить против нарушения ПДД?,0.48888683319091797,1,16.50331974029541
+Russian,Traffic_Objection,2,Есть ли ограничение по времени?,0.5074217319488525,1,9.884923458099365
+Russian,Traffic_Objection,3,Нужно ли мне сначала платить?,0.4606177508831024,1,38.89690065383911
+Russian,Traffic_Objection,4,"Могу ли я возразить еще раз, если мне откажут?",0.40230366587638855,1,11.765624046325684
+Russian,National_Address,1,Как мне зарегистрировать свой национальный адрес?,0.6192167401313782,1,35.635014057159424
+Russian,National_Address,2,Есть ли плата?,0.5886266231536865,1,15.112523317337036
+Russian,National_Address,3,Могу ли я зарегистрироваться для семьи?,0.5627827048301697,1,17.600731134414673
+Russian,National_Address,4,Как распечатать доказательство?,0.4535709619522095,1,27.546774864196777
+Russian,Lost_ID,1,"Я потерял свое национальное удостоверение личности, что делать?",0.5746810436248779,1,31.721922636032104
+Russian,Lost_ID,2,Есть ли штраф?,0.5681468844413757,1,34.212713956832886
+Russian,Lost_ID,3,Как записаться на прием?,0.559266209602356,1,21.842706441879272
+Russian,Lost_ID,4,Пора оформлять замену?,0.5719473361968994,1,22.11717414855957
+Russian,Vehicle_Transfer,1,Как передать право собственности на автомобиль?,0.48594555258750916,1,25.867557764053345
+Russian,Vehicle_Transfer,2,Какова цена?,0.41198980808258057,1,12.831507205963135
+Russian,Vehicle_Transfer,3,Нужна ли покупателю лицензия?,0.4829421937465668,1,17.281517267227173
+Russian,Vehicle_Transfer,4,Кто платит сборы?,0.5171038508415222,1,42.40862703323364
+Russian,Exit_ReEntry,1,Как оформить выездную визу?,0.4689086675643921,1,24.481141090393066
+Russian,Exit_ReEntry,2,Плата за разовую поездку?,0.5143473148345947,1,12.05778694152832
+Russian,Exit_ReEntry,3,Могу ли я продлить срок действия контракта за пределами КСА?,0.4185296893119812,1,23.32755756378174
+Russian,Exit_ReEntry,4,Требования к сроку действия паспорта?,0.36844703555107117,1,18.764235496520996
