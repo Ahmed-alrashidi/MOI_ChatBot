@@ -94,7 +94,7 @@ MOI_Universal_Assistant/
 ## 🛠️ Installation & Execution
 
 ### 1. Prerequisites
-* **Hardware:** NVIDIA GPU (A100/H100 Optimized recommended) with 16GB+ VRAM.
+* **Hardware:** NVIDIA GPU (A100/H100 Optimized recommended) with 80GB+ VRAM.
 * **Software:** Python 3.9+, CUDA Toolkit.
 
 ### 2. Setup & Installation
