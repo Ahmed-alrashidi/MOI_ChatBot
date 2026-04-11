@@ -182,8 +182,8 @@ This project utilizes the **ALLaM** model series by **SDAIA (Saudi Data & AI Aut
 
 ## 📄 Academic Context
 
-Developed as a capstone project for the **Postgraduate Diploma (PGD+)** program at
-**King Abdullah University of Science and Technology (KAUST) Academy — 2026**
+Developed as a capstone project for the **AI master (PGD+ team)** program at
+**King Abdullah University of Science and Technology (KAUST) — 2026**
 
 **Team:** PGD+
 **Version:** 5.0 (Production Release)
