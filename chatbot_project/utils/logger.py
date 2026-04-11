@@ -1,12 +1,12 @@
 # =========================================================================
 # File Name: utils/logger.py
-# Purpose: Advanced Logging System with Dynamic Levels & Error Handling.
+# Purpose: Advanced Logging System with Traceability (Line numbers & Functions).
 # Project: Absher Smart Assistant (MOI ChatBot)
 # Features:
-# - Level Control: Synchronized with Config.DEBUG_MODE.
-# - Fault Tolerance: Gracefully handles directory permission errors.
-# - Visual UX: Color-coded console outputs for easier debugging.
-# - Log Maintenance: Automatic daily rotation with 30-day retention.
+# - Level Management: Toggleable via Config.DEBUG_MODE.
+# - Detailed Auditing: Captures function names and line numbers in file logs.
+# - Visual Console: Clean, color-coded UX for real-time monitoring.
+# - Optimized: Pre-compiled formatters for high-throughput performance.
 # =========================================================================
 
 import logging
@@ -17,10 +17,11 @@ from config import Config
 
 class ColoredFormatter(logging.Formatter):
     """
-    Custom logging formatter that injects ANSI escape sequences to provide 
-    color-coded feedback in the console based on the importance of the message.
+    Custom formatter for the console output. 
+    Provides emoji-based, color-coded feedback while keeping the output concise. 
+    Formatters are pre-compiled in __init__ to save CPU cycles during high-frequency logging.
     """
-    # ANSI Color Codes for terminal output
+    # ANSI Color escape sequences for terminal output
     GREY = "\x1b[38;20m"
     GREEN = "\x1b[32;20m"
     YELLOW = "\x1b[33;20m"
@@ -28,83 +29,86 @@ class ColoredFormatter(logging.Formatter):
     BOLD_RED = "\x1b[31;1m"
     RESET = "\x1b[0m"
     
-    FORMAT = "%(message)s"
+    # Message-only format for a clean, user-friendly terminal experience
+    BASE_FMT = "%(message)s"
 
-    # Mapping log levels to specific colors and symbols (e.g., Emoji for Debug)
-    FORMATS = {
-        logging.DEBUG: GREY + "🐛 DEBUG: " + FORMAT + RESET,
-        logging.INFO: GREEN + "INFO: " + FORMAT + RESET,
-        logging.WARNING: YELLOW + "WARNING: " + FORMAT + RESET,
-        logging.ERROR: RED + "ERROR: " + FORMAT + RESET,
-        logging.CRITICAL: BOLD_RED + "CRITICAL: " + FORMAT + RESET
-    }
+    def __init__(self):
+        super().__init__()
+        # Pre-compile formatters to avoid redundant string concatenation per log event
+        self._formatters = {
+            logging.DEBUG: logging.Formatter(f"{self.GREY}🐛 DEBUG: {self.BASE_FMT}{self.RESET}"),
+            logging.INFO: logging.Formatter(f"{self.GREEN}💡 INFO: {self.BASE_FMT}{self.RESET}"),
+            logging.WARNING: logging.Formatter(f"{self.YELLOW}⚠️ WARNING: {self.BASE_FMT}{self.RESET}"),
+            logging.ERROR: logging.Formatter(f"{self.RED}❌ ERROR: {self.BASE_FMT}{self.RESET}"),
+            logging.CRITICAL: logging.Formatter(f"{self.BOLD_RED}🚨 CRITICAL: {self.BASE_FMT}{self.RESET}")
+        }
+        self._default_formatter = logging.Formatter(self.BASE_FMT)
 
-    def format(self, record):
-        """Formats the log record with the appropriate level-based color."""
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
+    def format(self, record: logging.LogRecord) -> str:
+        """Applies the mapped color formatter to the intercepted log record."""
+        formatter = self._formatters.get(record.levelno, self._default_formatter)
         return formatter.format(record)
 
-def setup_logger(name: str = __name__, log_filename: str = "app.log") -> logging.Logger:
+
+def setup_logger(name: str = "Absher_AI", log_filename: str = "app.log") -> logging.Logger:
     """
-    Orchestrates the creation and configuration of the logger instance.
-    Ensures that multiple handlers (File and Console) are attached correctly 
-    without duplication.
-
+    Orchestrates the logging infrastructure with dual-target dispatching:
+    1. File Handler: Comprehensive audit trail (Timestamp, Module, Line, Level) for debugging.
+    2. Console Handler: Streamlined, color-coded status updates for the sysadmin.
+    
     Args:
-        name (str): The name of the module requesting the logger.
-        log_filename (str): The physical filename for the log output.
-
+        name (str): Identifier for the logger instance.
+        log_filename (str): Name of the output log file.
+        
     Returns:
-        logging.Logger: A fully configured logger instance.
+        logging.Logger: The configured logger instance.
     """
     logger = logging.getLogger(name)
     
-    # Singleton check: Prevent adding duplicate handlers if the logger already exists
+    # Singleton Guard: Prevent redundant handler attachment if called multiple times
     if logger.handlers:
         return logger
 
-    # --- 1. Dynamic Logging Level Selection ---
-    # Switches to DEBUG (verbose) if Config.DEBUG_MODE is enabled, else uses INFO.
-    level = logging.DEBUG if getattr(Config, 'DEBUG_MODE', False) else logging.INFO
-    logger.setLevel(level)
+    # 1. Determine Global Sensitivity Level based on Environment Config
+    log_level = logging.DEBUG if getattr(Config, 'DEBUG_MODE', False) else logging.INFO
+    logger.setLevel(log_level)
 
-    # --- 2. File Handler Configuration (Permanent Storage) ---
+    # 2. File Handler Configuration (The Detailed Auditor)
     try:
-        # Self-Healing: Ensure the log directory exists before attempting to write
         if not os.path.exists(Config.LOG_DIR):
             os.makedirs(Config.LOG_DIR, exist_ok=True)
 
         log_path = os.path.join(Config.LOG_DIR, log_filename)
 
-        # Standard non-colored format for file logs (includes timestamps and module names)
-        file_formatter = logging.Formatter(
-            '%(asctime)s - [%(name)s] - %(levelname)s - %(message)s',
+        # DETAILED FORMAT: [Timestamp] - [Module] - [Function:Line] - [Level] - [Message]
+        # Crucial for tracing asynchronous bugs on the A100 cluster.
+        detailed_formatter = logging.Formatter(
+            '%(asctime)s - [%(name)s] - [%(funcName)s:%(lineno)d] - %(levelname)s - %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
 
-        # File Rotation: Creates a new file at midnight and keeps logs for 30 days.
+        # Rotates logs nightly, keeping a 30-day history. UTF-8 ensures Arabic logs don't break.
         file_handler = TimedRotatingFileHandler(
             log_path, 
             when="midnight", 
             interval=1, 
             backupCount=30, 
-            encoding='utf-8' # Ensures Arabic text is written correctly
+            encoding='utf-8' 
         )
-        file_handler.setFormatter(file_formatter)
+        file_handler.setFormatter(detailed_formatter)
         logger.addHandler(file_handler)
         
     except (OSError, PermissionError) as e:
-        # Security Guard: If the server denies write access, fallback to console-only logging
-        print(f"⚠️ Warning: Logging to file disabled due to permissions: {e}")
+        print(f"⚠️ Warning: Persistent file logging disabled (Permission Denied): {e}")
     except Exception as e:
-        print(f"⚠️ Warning: Unexpected error initializing file logger: {e}")
+        print(f"⚠️ Warning: Unexpected file logging initialization failure: {e}")
 
-    # --- 3. Console Handler Configuration (Real-time Monitoring) ---
+    # 3. Console Handler Configuration (The Visual Monitor)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(ColoredFormatter())
     logger.addHandler(console_handler)
 
-    # Prevent logs from bubbling up to the root logger to avoid double-logging
+    # Prevent logs from bubbling up to the root logger (prevents duplicate console prints)
     logger.propagate = False
+    
     return logger

@@ -1,15 +1,18 @@
 # =========================================================================
 # File Name: core/model_loader.py
-# Purpose: Efficient Model Loading & Memory Management (A100 Optimized)
+# Purpose: Expert Model Management & VRAM Optimization (A100/H100 Ready).
+# Project: Absher Smart Assistant (MOI ChatBot)
 # Features:
-# - Singleton Pattern: Prevents redundant model loading and Out-of-Memory (OOM).
-# - Smart Fallback: Dynamically detects Flash Attention 2 to optimize A100/H100.
-# - Mixed Precision: Supports bfloat16 for Ampere GPUs and float16 for fallbacks.
-# - Clean Cleanup: Force-flushes VRAM during system shutdown.
+# - Unified Cache Path: Strictly uses /models directory for all AI assets.
+# - SDPA Acceleration: Native PyTorch optimization for high-speed inference.
+# - Singleton Persistence: Loads each model once, handles dynamic swapping.
+# - Memory Flush: Robust cleanup to prevent CUDA Out-of-Memory (OOM).
+# Fixed: Resolved Config.LLM_MODEL_NAME attribute error (was LL_MODEL_NAME).
 # =========================================================================
 
 import torch
 import gc
+import os
 import importlib.util
 from typing import Optional, Tuple, Any
 from transformers import (
@@ -21,200 +24,225 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from config import Config
 from utils.logger import setup_logger
 
-# Initialize project logger linked to Config paths
+# Initialize module-specific logger
 logger = setup_logger("Model_Manager")
 
 class ModelManager:
     """
-    Static manager class responsible for loading and managing LLMs, Embeddings, 
-    and ASR models. It uses the Singleton pattern to ensure that each model 
-    is loaded into GPU memory only once.
+    Centralized manager for Large Language Models (LLMs), Embeddings, and ASR models.
+    Implements a robust Singleton design pattern with path-awareness to prevent 
+    redundant memory allocation and manage VRAM efficiently on the A100 cluster.
     """
     
-    # Singleton instances to keep models persistent in RAM/VRAM
+    # Class-level variables holding the active singleton instances
     _embed_model_instance: Optional[HuggingFaceEmbeddings] = None
     _llm_instance: Optional[AutoModelForCausalLM] = None
     _tokenizer_instance: Optional[AutoTokenizer] = None
     _asr_pipeline_instance: Optional[Any] = None
+    
+    # Tracks the currently active LLM string to handle dynamic model swapping safely
+    _current_llm_name: Optional[str] = None
 
     @staticmethod
-    def _is_flash_attn_available():
+    def _get_best_attn_impl() -> str:
         """
-        Checks if the 'flash_attn' library is installed in the environment.
-        This prevents the system from crashing if Flash Attention is requested 
-        but not supported by the hardware/software stack.
+        Detects the optimal attention implementation for the current hardware architecture.
+        Prioritizes Flash Attention 2 for Ampere/Hopper GPUs, falling back to native SDPA.
         
         Returns:
-            bool: True if flash_attn is available.
+            str: The optimal attention backend ('flash_attention_2', 'sdpa', or 'eager').
         """
-        return importlib.util.find_spec("flash_attn") is not None
+        if Config.DEVICE != "cuda":
+            return "eager"
+        
+        # Check if the environment has Flash Attention 2 installed natively
+        if importlib.util.find_spec("flash_attn") is not None:
+            return "flash_attention_2"
+        
+        # Default to Scaled Dot Product Attention (SDPA), which is highly optimized in PyTorch 2.0+
+        return "sdpa"
 
     @classmethod
     def get_embedding_model(cls) -> HuggingFaceEmbeddings:
         """
-        Loads the Embedding Model (BGE-M3) into memory.
-        Used primarily for generating vectors for the RAG pipeline.
+        Loads and returns the Embedding Engine (e.g., BGE-M3) using the unified local cache.
+        Retrieves the singleton instance if it has already been loaded.
         
         Returns:
-            HuggingFaceEmbeddings: The persistent embedding model instance.
+            HuggingFaceEmbeddings: The instantiated embedding model.
         """
         if cls._embed_model_instance is not None:
             return cls._embed_model_instance
 
-        logger.info(f"🔹 Loading Embedding Model: {Config.EMBEDDING_MODEL_NAME}")
+        logger.info(f"🔹 Loading Embedding Engine: {Config.EMBEDDING_MODEL_NAME}")
         
         try:
-            # Device configuration: Move embeddings to GPU if available
-            model_kwargs = {'device': Config.DEVICE, 'trust_remote_code': True}
-            encode_kwargs = {'normalize_embeddings': True} 
-
-            # Initialize with strict cache path to avoid re-downloading on Slurm/Ibex clusters
             cls._embed_model_instance = HuggingFaceEmbeddings(
                 model_name=Config.EMBEDDING_MODEL_NAME,
-                cache_folder=Config.MODELS_CACHE_DIR,
-                model_kwargs=model_kwargs,
-                encode_kwargs=encode_kwargs,
-                multi_process=False
+                cache_folder=Config.MODELS_CACHE_DIR, # Force usage of the unified /models directory
+                model_kwargs={'device': Config.DEVICE, 'trust_remote_code': True},
+                encode_kwargs={'normalize_embeddings': True} # Critical for Cosine Similarity
             )
-
-            logger.info("✅ Embedding Model Loaded Successfully.")
+            logger.info("✅ Embedding Model Synchronized and Ready.")
             return cls._embed_model_instance
-
         except Exception as e:
-            logger.critical(f"❌ Failed to load Embedding Model: {e}")
+            logger.critical(f"❌ Failed to load Embedding Engine: {e}")
             raise e
 
     @classmethod
-    def get_llm(cls) -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
+    def get_llm(cls, model_name: str = None) -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
         """
-        Loads the Large Language Model (ALLaM-7B) and its Tokenizer.
-        Features automatic optimization for NVIDIA Ampere (A100) architecture.
+        Dynamically loads or swaps LLMs while maintaining VRAM integrity.
+        Ensures the previously loaded model is completely purged before loading a new one 
+        to prevent Out-of-Memory (OOM) exceptions during benchmarking.
         
+        Args:
+            model_name (str, optional): The specific HuggingFace repo ID. Defaults to Config.LLM_MODEL_NAME.
+            
         Returns:
-            Tuple: (Model instance, Tokenizer instance).
+            Tuple[AutoModelForCausalLM, AutoTokenizer]: The loaded model and its corresponding tokenizer.
         """
-        # Singleton check: return existing instances if already loaded in VRAM
-        if cls._llm_instance is not None and cls._tokenizer_instance is not None:
+        # [FIXED]: Changed LL_MODEL_NAME to LLM_MODEL_NAME to match config.py
+        target_model = model_name or Config.LLM_MODEL_NAME
+
+        # Return existing instance if the exact requested model is already active in VRAM
+        if cls._llm_instance is not None and cls._current_llm_name == target_model:
             return cls._llm_instance, cls._tokenizer_instance
 
-        logger.info(f"🔹 Loading LLM: {Config.LLM_MODEL_NAME}...")
-        logger.info(f"⚙️ Precision: {Config.TORCH_DTYPE} | Device: {Config.DEVICE}")
+        # Force a targeted VRAM purge if a different LLM is currently loaded
+        if cls._llm_instance is not None:
+            logger.warning(f"🔄 Swapping Models: Unloading '{cls._current_llm_name}' -> Loading '{target_model}'")
+            cls.unload_llm_only() # Only unload LLM to preserve Embeddings/ASR in memory
+
+        logger.info(f"🔹 Initializing LLM: {target_model}")
+        attn_impl = cls._get_best_attn_impl()
+        logger.info(f"🚀 Acceleration Backend: {attn_impl} | Compute Precision: {Config.TORCH_DTYPE}")
 
         try:
-            # 1. Load Tokenizer with official Hugging Face Token
+            # 1. Initialize the Tokenizer
             tokenizer = AutoTokenizer.from_pretrained(
-                Config.LLM_MODEL_NAME,
+                target_model,
                 token=Config.HF_TOKEN,
                 cache_dir=Config.MODELS_CACHE_DIR,
                 trust_remote_code=True,
                 clean_up_tokenization_spaces=True
             )
             
-            # Ensure the pad_token is set for stable generation and batching
+            # Ensure a padding token exists to prevent generation warnings
             if tokenizer.pad_token is None:
                 tokenizer.pad_token = tokenizer.eos_token
-                logger.info("🔧 Set pad_token to eos_token for stability.")
 
-            # 2. Determine Attention Implementation (Smart Fallback)
-            # Flash Attention 2 significantly speeds up inference on A100/H100 GPUs
-            use_flash_attn = cls._is_flash_attn_available() and Config.DEVICE == "cuda"
-            attn_impl = "flash_attention_2" if use_flash_attn else "eager"
-            
-            if use_flash_attn:
-                logger.info("⚡ Flash Attention 2 is ENABLED (A100 Optimization Active).")
-            else:
-                logger.warning("⚠️ Flash Attention 2 library missing. Falling back to standard attention (Stable Mode).")
-
-            # 3. Load Model with optimized data types (bfloat16 for A100)
+            # 2. Load Model weights with the hardware-optimized precision (e.g., bfloat16)
             model = AutoModelForCausalLM.from_pretrained(
-                Config.LLM_MODEL_NAME,
+                target_model,
                 token=Config.HF_TOKEN,
                 cache_dir=Config.MODELS_CACHE_DIR,
-                torch_dtype=Config.TORCH_DTYPE,
-                device_map="auto", # Automatically balances layers across available GPUs
+                torch_dtype=Config.TORCH_DTYPE,  # Keep for backward compat with older transformers
+                device_map="auto", 
                 trust_remote_code=True,
-                attn_implementation=attn_impl 
+                attn_implementation=attn_impl,
+                low_cpu_mem_usage=True  # Additional memory optimization
             )
 
+            # Update Class Singletons
             cls._llm_instance = model
             cls._tokenizer_instance = tokenizer
-            logger.info(f"✅ ALLaM-7B Model Loaded Successfully (Mode: {attn_impl}).")
+            cls._current_llm_name = target_model
             
+            # Log VRAM usage for monitoring
+            if torch.cuda.is_available():
+                vram_used = torch.cuda.memory_allocated() / 1e9
+                vram_total = torch.cuda.get_device_properties(0).total_memory / 1e9
+                logger.info(f"✅ LLM '{target_model}' loaded | VRAM: {vram_used:.1f}/{vram_total:.1f} GB")
+            else:
+                logger.info(f"✅ LLM '{target_model}' loaded (CPU mode).")
             return model, tokenizer
 
         except Exception as e:
-            logger.critical(f"❌ Failed to load LLM: {e}")
+            logger.critical(f"❌ LLM Initialization Fatal Error: {e}")
             raise e
 
     @classmethod
-    def get_asr_pipeline(cls):
+    def get_asr_pipeline(cls) -> Optional[Any]:
         """
-        Loads the OpenAI Whisper Large-v3 model for Speech-to-Text conversion.
-        Configured with long-form transcription support (chunk_length_s).
+        Initializes the Whisper Automatic Speech Recognition (ASR) pipeline.
         
         Returns:
-            pipeline: HuggingFace ASR Pipeline instance.
+            pipeline: A HuggingFace pipeline object configured for speech-to-text.
         """
         if cls._asr_pipeline_instance is not None:
             return cls._asr_pipeline_instance
 
-        logger.info(f"🔹 Loading ASR Model: {Config.ASR_MODEL_NAME}")
+        logger.info(f"🔹 Loading ASR Engine: {Config.ASR_MODEL_NAME}")
         
         try:
-            # Map device for HuggingFace Pipeline (0 for GPU, -1 for CPU)
             device_id = 0 if Config.DEVICE == "cuda" else -1
-            
-            # Flash Attention optimization for Whisper inference
-            use_flash_attn = cls._is_flash_attn_available() and Config.DEVICE == "cuda"
-            attn_impl = "flash_attention_2" if use_flash_attn else "eager"
 
             cls._asr_pipeline_instance = pipeline(
                 "automatic-speech-recognition",
                 model=Config.ASR_MODEL_NAME,
                 device=device_id,
-                # Dynamic dtype based on hardware support
+                # Use torch_dtype to comply with modern Transformers pipeline API
                 torch_dtype=torch.float16 if Config.DEVICE == "cuda" else torch.float32,
                 chunk_length_s=30,
                 model_kwargs={
-                    "cache_dir": Config.MODELS_CACHE_DIR,
-                    "attn_implementation": attn_impl
+                    "cache_dir": Config.MODELS_CACHE_DIR
                 }
             )
-            logger.info(f"✅ ASR Pipeline Ready (Mode: {attn_impl}).")
+            logger.info(f"✅ ASR Pipeline Synchronized and Ready.")
             return cls._asr_pipeline_instance
-
         except Exception as e:
-            logger.error(f"❌ Failed to load Whisper: {e}")
+            logger.error(f"❌ ASR Initialization Failure: {e}")
             return None
+
+    @classmethod
+    def unload_llm_only(cls):
+        """
+        Selectively unloads the LLM and Tokenizer to free up bulk VRAM.
+        Leaves the Embedding model and ASR pipeline intact for continued retrieval tasks.
+        """
+        logger.warning("🧹 Purging LLM from VRAM...")
+        
+        # Snapshot VRAM before purge
+        vram_before = torch.cuda.memory_allocated() / 1e9 if torch.cuda.is_available() else 0
+        
+        cls._llm_instance = None
+        cls._tokenizer_instance = None
+        cls._current_llm_name = None
+        
+        gc.collect()
+        
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+            vram_after = torch.cuda.memory_allocated() / 1e9
+            logger.info(f"✨ LLM purged | VRAM freed: {vram_before - vram_after:.1f} GB | Remaining: {vram_after:.1f} GB")
+        else:
+            logger.info("✨ LLM VRAM targeted reset complete.")
 
     @classmethod
     def unload_all(cls):
         """
-        Clears the Singleton instances and force-flushes GPU VRAM.
-        Critical for avoiding memory leaks during system reloads or shutdowns.
+        Hard reset for GPU memory. Purges all Singletons (LLM, Embeddings, ASR) 
+        and fully flushes the CUDA cache.
+        Essential for safely switching between massive models during Benchmarking (e.g., 7B to 32B).
         """
-        logger.warning("🧹 Unloading all models from memory...")
+        logger.warning("🧹 Purging VRAM: Flushing all model instances...")
         
-        # Explicitly delete Python references to the models
-        if cls._llm_instance:
-            del cls._llm_instance
-            cls._llm_instance = None
+        vram_before = torch.cuda.memory_allocated() / 1e9 if torch.cuda.is_available() else 0
+        
+        cls._llm_instance = None
+        cls._tokenizer_instance = None
+        cls._embed_model_instance = None
+        cls._asr_pipeline_instance = None
+        cls._current_llm_name = None
             
-        if cls._tokenizer_instance:
-            del cls._tokenizer_instance
-            cls._tokenizer_instance = None
-            
-        if cls._embed_model_instance:
-            del cls._embed_model_instance
-            cls._embed_model_instance = None
-            
-        if cls._asr_pipeline_instance:
-            del cls._asr_pipeline_instance
-            cls._asr_pipeline_instance = None
-            
-        # Trigger Garbage Collection and CUDA cache clearing
         gc.collect()
+        
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            
-        logger.info("✅ Memory Cleaned.")
+            torch.cuda.synchronize()
+            vram_after = torch.cuda.memory_allocated() / 1e9
+            logger.info(f"✨ Full VRAM reset | Freed: {vram_before - vram_after:.1f} GB | Remaining: {vram_after:.1f} GB")
+        else:
+            logger.info("✨ Full VRAM hard reset complete.")

@@ -1,87 +1,111 @@
 # =========================================================================
 # File Name: data/schema.py
+# Purpose: GRC-Grade Data Validation & Quality Enforcement.
 # Project: Absher Smart Assistant (MOI ChatBot)
-# Purpose: Data Validation & Structural Integrity Enforcement
 # Features:
-# - Strict Schema Enforcement: Validates both Vector (Dense) and BM25 (Sparse) inputs.
-# - Quality Assurance: Detects null values, empty strings, and "ghost data".
-# - Compliance Ready: Ensures datasets meet the minimum quality for AI reasoning.
+# - V2 Schema Alignment: Supports full Master CSV headers.
+# - Semantic Guard: Validates minimum content length for RAG quality.
+# - Placeholder Detection: Flags "N/A", "TBD", or empty-meaning rows.
+# - Comprehensive Auditing: Detailed logging for data engineering review.
 # =========================================================================
 
 import pandas as pd
-from typing import List
+from typing import List, Dict
+from pandas.api.types import is_string_dtype
 from utils.logger import setup_logger
 
-# Initialize a dedicated schema validator logger
+# Initialize specialized logger for compliance auditing
 logger = setup_logger("Schema_Validator")
 
-# --- 1. Master Data Schema (For Vector Store / Dense Retrieval) ---
-# 'RAG_Content' is the unified column containing the core descriptive text.
-# It is mandatory for generating high-quality semantic embeddings.
-MASTER_REQUIRED_COLS: List[str] = [
-    "RAG_Content" 
-]
+# --- 1. DEFINITION OF TRUTH (Schema Mapping) ---
+# Aligned with the production MOI_Master_Knowledge schema
+SCHEMA_MAP: Dict[str, List[str]] = {
+    "master": [
+        "Sector", 
+        "Service_Name", 
+        "Target_Audience", 
+        "Service_Description",
+        "RAG_Content", 
+        "Service_Steps", 
+        "Requirements", 
+        "Service_Fees", 
+        "Official_URL"
+    ],
+    "chunk": [
+        "اسم الخدمة", 
+        "RAG_Content", 
+        "القطاع", 
+        "خطوات الخدمة", 
+        "المستندات المطلوبة", 
+        "سعر الخدمة", 
+        "رابط الخدمة"
+    ]
+}
 
-# --- 2. Chunk Data Schema (For BM25 / Sparse Retrieval) ---
-# These columns are essential for constructing the keyword-based search index.
-# They provide the granular details needed for exact matching (Services, Steps, Docs).
-CHUNK_REQUIRED_COLS: List[str] = [
-    "اسم الخدمة", 
-    "خطوات الخدمة", 
-    "المستندات المطلوبة" 
-]
-
-def validate_schema(df: pd.DataFrame, required_cols: List[str], filename: str) -> bool:
+def validate_schema(df: pd.DataFrame, schema_type: str, filename: str) -> bool:
     """
-    Executes a rigorous validation suite on DataFrames prior to ingestion.
-    
-    This function serves as a 'Guardrail' to prevent corrupted or empty data from 
-    polluting the Vector Database, which could lead to hallucinations.
-
-    Args:
-        df (pd.DataFrame): The input data to be validated.
-        required_cols (List[str]): The list of mandatory column names.
-        filename (str): The name of the file being processed for logging context.
-
-    Returns:
-        bool: True if the data passes all integrity checks, False otherwise.
+    Performs a deep-scan validation of the DataFrame. 
+    Enforces structural integrity and content quality to prevent 
+    AI bias and retrieval of low-value information.
     """
     
-    # 1. Integrity Check: Verify the file is not empty
-    if df.empty or len(df) == 0:
-        logger.warning(f"⚠️ Validation Failed: File '{filename}' is empty or contains no records.")
+    # [A] STRUCTURAL VALIDATION
+    if schema_type not in SCHEMA_MAP:
+        logger.error(f"❌ Configuration Error: Schema type '{schema_type}' is undefined.")
         return False
 
-    # 2. Structural Check: Verify all mandatory columns exist
+    required_cols = SCHEMA_MAP[schema_type]
+
+    if df is None or df.empty:
+        logger.error(f"❌ Input Error: '{filename}' is empty or null.")
+        return False
+
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
-        logger.error(f"❌ Schema Violation in '{filename}': Missing mandatory columns {missing}")
+        logger.error(f"❌ Compliance Violation in '{filename}': Missing columns {missing}")
         return False
 
-    # 3. Qualitative Content Check: Ensure columns contain actionable data
+    # [B] QUALITATIVE VALIDATION
+    placeholders = {'n/a', 'none', 'tbd', 'جاري العمل', 'لا يوجد', '-', 'null'}
+    
     for col in required_cols:
-        
-        # A. Null/NaN Validation: Check if the entire column is unpopulated
+        # 1. Check for total column failure (All NULL)
         if df[col].isnull().all():
-            logger.error(f"❌ Data Integrity Error in '{filename}': Column '{col}' is entirely Null/Empty.")
+            logger.error(f"❌ Integrity Failure: Column '{col}' in '{filename}' is 100% empty.")
             return False
-        
-        # B. "Ghost Data" Validation: Detect columns containing only whitespace/empty strings
-        # This is a critical check for data cleaned in Excel that might contain hidden spaces.
-        if df[col].dtype == object: 
-            # Strip whitespace and count resulting empty strings
-            empty_or_space_count = df[col].astype(str).str.strip().eq("").sum()
-            
-            # Fail if every row in a required column is effectively empty
-            if empty_or_space_count == len(df):
-                logger.error(f"❌ Data Quality Error in '{filename}': Column '{col}' contains only whitespace strings.")
-                return False
-            
-            # Warning: Log a quality alert if more than 50% of the data is missing
-            # This allows the process to continue but flags the dataset for manual review.
-            if empty_or_space_count > (len(df) * 0.5):
-                logger.warning(f"⚠️ Data Quality Alert: '{filename}' column '{col}' is >50% sparse ({empty_or_space_count}/{len(df)} rows).")
 
-    # Log successful validation
-    logger.info(f"✅ Schema successfully validated for: {filename}")
+        # 2. Content Quality Analysis (String columns only)
+        if is_string_dtype(df[col]):
+            series = df[col].fillna("").astype(str).str.strip()
+            
+            # Detect Placeholder/Dummy data
+            placeholder_matches = series.str.lower().isin(placeholders).sum()
+            empty_matches = (series == "").sum()
+            total_invalid = placeholder_matches + empty_matches
+            
+            # Fatal Error: If the most critical columns are invalid
+            if col in ["RAG_Content", "Service_Name"] and total_invalid == len(df):
+                logger.error(f"❌ Critical Failure: Mandatory column '{col}' has no valid semantic data.")
+                return False
+
+            # Semantic Depth Check: RAG_Content should be informative
+            if col == "RAG_Content":
+                short_rows = (series.str.len() < 50).sum()
+                if short_rows > (len(df) * 0.3):
+                    logger.warning(f"⚠️ Content Quality Alert: {short_rows} rows in 'RAG_Content' are too short (<50 chars).")
+
+            # Sparsity Alerting
+            if total_invalid > (len(df) * 0.5):
+                logger.warning(
+                    f"⚠️ High Sparsity in '{filename}': Column '{col}' is {total_invalid/len(df):.1%} invalid/empty. "
+                    "This may reduce search recall."
+                )
+
+    # Duplicate service name check
+    if schema_type == "master" and "Service_Name" in df.columns:
+        dupes = df["Service_Name"].duplicated().sum()
+        if dupes > 0:
+            logger.warning(f"⚠️ {dupes} duplicate Service_Name(s) detected in '{filename}'. May cause retrieval conflicts.")
+
+    logger.info(f"✅ Schema validated: {filename} | {len(df)} rows, {len(required_cols)} columns")
     return True

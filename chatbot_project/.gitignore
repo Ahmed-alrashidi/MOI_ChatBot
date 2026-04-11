@@ -1,28 +1,26 @@
 # =========================================================================
 # File Name: .gitignore
 # Project: Absher Smart Assistant (MOI ChatBot)
-# Edition: v1.0
+# Edition: v3.0 (SVG Assets + Auth DB Protection)
 # Purpose: Version Control Exclusion for Security, Privacy & Performance
 # =========================================================================
 
-# --- 1. Security & Secrets (Top Priority) 🔒 ---
-# Exclude access keys, credentials, and secrets to prevent data leaks
+# --- 1. Security & Secrets (Zero Trust Policy) 🔒 ---
 .env
-.env.local
+.env*
 .secrets
 *.pem
+*.key
 hf_token
 auth_token.txt
+users/users_db.json
 
-# --- 2. Large Models & Cache (HPC/A100 Optimized) 🏋️‍♂️ ---
-# Exclude heavy model weight directories (Models are loaded locally on the server)
+# --- 2. Large Models & Cache (HPC/A100 Resources) 🏋️‍♂️ ---
 models/
 models_cache/
 hub/
 snapshots/
 xet/
-
-# Exclude large binary model weight formats
 *.safetensors
 *.bin
 *.pt
@@ -33,13 +31,11 @@ xet/
 *.onnx
 
 # --- 3. Vector Database & Indices 🔍 ---
-# Exclude FAISS indices (Recommended to rebuild automatically or use Git-LFS)
 data/faiss_index/
 *.faiss
 *.pkl
 
-# --- 4. Python & Virtual Environments 🐍 ---
-# Exclude bytecode and local environment artifacts
+# --- 4. Python & Environment Artifacts 🐍 ---
 __pycache__/
 *.py[cod]
 *$py.class
@@ -53,40 +49,38 @@ pip-log.txt
 .coverage
 .ipynb_checkpoints/
 
-# --- 5. Data & Processing Layer 📂 ---
-# Exclude temporary files and auto-processed data dumps
+# --- 5. Data Layer & Knowledge Management 📂 ---
 data/temp/
 *.tmp
-*.log
 
-# Preserve core data directory structure (via .gitkeep files)
+# PRESERVE: Keep master structures and the verified Knowledge Graph
 !data/Data_Master/
 !data/Data_Chunk/
 !data/data_processed/services_knowledge_graph.json
+!data/Data_Master/MOI_Master_Knowledge.csv
 
-# --- 6. Privacy & UI Artifacts (Compliance) 🙈 ---
-# Exclude user interaction logs (Gradio) for strict privacy compliance
+# --- 6. Privacy & Telemetry (GRC Requirement) 🙈 ---
+outputs/user_analytics/
+logs/*.log
 flagged/
 .gradio/
 
-# --- 7. Outputs & Media 📝 ---
-# Exclude generated audio responses and session-specific media
+# --- 7. Outputs & Media Assets 📝 ---
 outputs/audio/*
 outputs/audio_cache/*
 outputs/images/*
 !outputs/audio/.gitkeep
+!ui/assets/*.png
+!ui/assets/*.jpg
+!ui/assets/*.svg
 
-# --- 8. Benchmarks & Audit Reports 📊 ---
-# Exclude intermediate test results and temporary reports
+# --- 8. Benchmarks & Ground Truth 📊 ---
 temp_results.csv
 retrieval_report_*.csv
-
-# Allow tracking of final validated results and ground truth datasets
-!Benchmarks/results/
-!Benchmarks/data/ground_truth_polyglot.csv
+Benchmarks/results/*.csv
+!Benchmarks/data/ground_truth_polyglot_V2.csv
 
 # --- 9. OS & IDE Configuration 💻 ---
-# Exclude local developer environment and system-specific files
 .DS_Store
 Thumbs.db
 .vscode/

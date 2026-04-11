@@ -1,12 +1,12 @@
 # =========================================================================
 # File Name: utils/tts.py
-# Purpose: High-Fidelity Text-to-Speech (TTS) using Microsoft Edge Neural Engine.
+# Purpose: High-Fidelity Text-to-Speech (TTS) via Microsoft Edge Neural Engine.
 # Project: Absher Smart Assistant (MOI ChatBot)
 # Features:
-# - Localized Dialect: Uses 'ar-SA-HamedNeural' for authentic Saudi male voice.
-# - Clean Synthesis: Strips Markdown/HTML to prevent the AI from reading symbols.
-# - Async Integration: Uses asyncio to handle API calls without blocking the UI.
-# - Storage Optimization: Self-cleaning mechanism for temporary MP3 files.
+# - Dialect Accuracy: Uses 'ar-SA-HamedNeural' for authentic Saudi dialect output.
+# - Sanitization: Strips Markdown/HTML/Brackets to prevent robotic/unnatural pronunciation.
+# - Storage Management: Auto-purges temporary audio files older than 10 minutes (TTL).
+# - Async/Sync Bridge: Robust multi-threading to prevent Gradio UI deadlocks.
 # =========================================================================
 
 import os
@@ -15,27 +15,27 @@ import time
 import glob
 import re
 import asyncio
+import threading
 import edge_tts
+from typing import Optional
 from config import Config
 from utils.logger import setup_logger
 
-# Initialize a dedicated logger for the TTS engine
+# Dedicated logger for speech synthesis events
 logger = setup_logger("TTS_Engine")
 
-# --- Voice Configuration ---
-# Arabic: "ar-SA-HamedNeural" - Specifically chosen for its natural Saudi tone.
-# English: "en-US-AriNeural" - A clear, professional male voice.
+# Voice selection: Authentic Saudi Arabic and Professional English
 VOICE_AR = "ar-SA-HamedNeural"
 VOICE_EN = "en-US-AriNeural"
 
 def cleanup_old_audio(directory: str, max_age_seconds: int = 600):
     """
-    Automated Maintenance: Purges expired temporary audio files from the cache.
-    This prevents the server storage from filling up over time.
+    Periodic Maintenance Utility.
+    Deletes expired audio files from the disk to conserve storage on the server.
     
     Args:
-        directory (str): The path where MP3 files are stored.
-        max_age_seconds (int): Time-to-Live (TTL) for files. Default is 10 minutes.
+        directory (str): The directory containing audio outputs.
+        max_age_seconds (int): Time-to-Live (TTL). Defaults to 10 minutes.
     """
     try:
         if not os.path.exists(directory):
@@ -44,119 +44,111 @@ def cleanup_old_audio(directory: str, max_age_seconds: int = 600):
         now = time.time()
         files = glob.glob(os.path.join(directory, "*.mp3"))
         
-        purged_count = 0
         for f in files:
-            # Check if the file's last modification time is older than the threshold
+            # Check file modification time against TTL
             if os.stat(f).st_mtime < now - max_age_seconds:
                 try:
                     os.remove(f)
-                    purged_count += 1
                 except OSError:
-                    pass # Ignore if file is currently being accessed
-        
-        if purged_count > 0:
-            logger.debug(f"🧹 Storage Cleanup: Removed {purged_count} expired audio files.")
+                    pass # Safely skip if the file is currently locked or playing
                     
     except Exception as e:
-        logger.warning(f"⚠️ Audio maintenance warning: {e}")
+        logger.warning(f"Audio cleanup warning: {e}")
 
-def clean_text_for_tts(text: str) -> str:
+def sanitize_for_speech(text: str) -> str:
     """
-    Sanitizes raw AI responses for the TTS engine.
-    It removes Markdown symbols and HTML tags so the voice reads only the 
-    intended words, not the formatting.
-
+    Prepares raw LLM text responses for the Neural Voice Engine.
+    Removes visual formatting (Markdown, Links) that sounds unnatural when spoken aloud.
+    
     Args:
-        text (str): Raw string from the LLM.
-
+        text (str): Raw text from the LLM.
     Returns:
-        str: Pure text ready for speech synthesis.
+        str: Sanitized text optimized for TTS.
     """
     if not text:
         return ""
 
-    # 1. Strip HTML tags (e.g., <br>, <b>) using regex
-    text = re.sub(r'<[^>]+>', '', text)
-    
-    # 2. Handle Markdown Links: [Absher](https://...) -> Becomes "Absher"
-    # We extract the readable text and discard the URL.
+    # 1. Strip URLs and Links: Convert [Text](Link) -> Text
+    text = re.sub(r'https?://\S+|www\.\S+', '', text)
     text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
 
-    # 3. Strip Markdown Formatting (Stars, underscores, code ticks, headers)
-    # This prevents the TTS from trying to pronounce symbols like "star star".
-    text = re.sub(r'[\*_`~]', '', text)
-    text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
+    # 2. Strip HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
     
-    # 4. Normalize Whitespace: Collapse multiple tabs/newlines into single spaces.
+    # 3. Strip Markdown & Brackets (*, _, #, `, ~, [, ]) to avoid robotic spelling
+    text = re.sub(r'[\*_`~#\[\]]', '', text)
+    
+    # 4. Normalize spacing
     return " ".join(text.split())
 
-def detect_tts_language(text: str) -> str:
+def detect_language(text: str) -> str:
     """
-    Uses character heuristics to select the appropriate Neural Voice.
-    
-    Args:
-        text (str): The sanitized text.
-        
-    Returns:
-        str: 'ar' for Arabic script, 'en' otherwise.
+    Heuristic language detection to select the appropriate TTS voice model.
+    Checks for the presence of Arabic script characters.
     """
-    # Check if text contains characters within the Arabic Unicode block
     if any("\u0600" <= c <= "\u06FF" for c in text):
         return 'ar'
     return 'en'
 
-async def _generate_edge_tts(text: str, voice: str, output_path: str):
+async def _run_tts_async(text: str, voice: str, output_path: str):
     """
-    Low-level Async function to communicate with the Edge TTS WebSocket API.
-    
-    Args:
-        text: Sanity-checked text.
-        voice: The specific neural voice ID.
-        output_path: Destination MP3 path.
+    Internal asynchronous task that communicates with the Edge-TTS API.
     """
     communicate = edge_tts.Communicate(text, voice)
     await communicate.save(output_path)
 
-def generate_speech(text: str) -> str:
+def generate_speech(text: str) -> Optional[str]:
     """
-    The High-Level Entry Point for Speech Synthesis.
-    It bridges the synchronous Gradio UI with the asynchronous TTS engine.
+    Public Entry Point for Speech Synthesis.
+    Crucially acts as an Async-to-Sync bridge, safely allowing synchronous 
+    Gradio UI clicks to execute asynchronous network calls without crashing the event loop.
     
+    Args:
+        text (str): The response text to be spoken.
     Returns:
-        str: The absolute local path to the generated MP3 file.
+        str: Path to the generated local .mp3 file, or None if failed.
     """
     if not text or not text.strip():
         return None
 
     try:
-        # Step 1: Run Maintenance (Garbage Collection)
+        # 1. Infrastructure prep
+        os.makedirs(Config.AUDIO_DIR, exist_ok=True)
         cleanup_old_audio(Config.AUDIO_DIR)
         
-        # Step 2: Pre-process Text (Strip Markdown/HTML)
-        speech_text = clean_text_for_tts(text)
-        if not speech_text.strip():
+        # 2. Text preparation and routing
+        clean_text = sanitize_for_speech(text)
+        if not clean_text: 
             return None
-
-        # Step 3: Select Voice (Saudi Hamed vs. American Ari)
-        lang = detect_tts_language(speech_text)
+        
+        lang = detect_language(clean_text)
         selected_voice = VOICE_AR if lang == 'ar' else VOICE_EN
         
-        # Step 4: Generate Unique Filename to prevent cache collisions
-        unique_id = uuid.uuid4().hex[:8]
-        filename = f"res_{unique_id}.mp3"
+        # 3. File generation (Unique identifier)
+        filename = f"voice_{uuid.uuid4().hex[:10]}.mp3"
         output_path = os.path.join(Config.AUDIO_DIR, filename)
-        
-        # Ensure the output directory exists on the server
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
-        # Step 5: Execute Async task in a synchronous context
-        # This allows Gradio (Sync) to wait for the Edge TTS (Async) result.
-        asyncio.run(_generate_edge_tts(speech_text, selected_voice, output_path))
-        
-        logger.info(f"🎙️ Neural TTS Generated | Voice: {selected_voice} | File: {filename}")
-        
+
+        # 4. Modern Async/Sync Bridge (Thread-Safe)
+        # Gradio runs its own FastAPI event loop. Calling asyncio.run() directly 
+        # inside an active loop throws a RuntimeError. 
+        try:
+            asyncio.run(_run_tts_async(clean_text, selected_voice, output_path))
+        except RuntimeError:
+            # Fallback: We are inside an active loop. Spin up a separate thread 
+            # with its own isolated event loop to run the async task safely.
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                def thread_runner():
+                    asyncio.run(_run_tts_async(clean_text, selected_voice, output_path))
+                t = threading.Thread(target=thread_runner)
+                t.start()
+                t.join() # Block until audio is fully downloaded
+            else:
+                loop.run_until_complete(_run_tts_async(clean_text, selected_voice, output_path))
+
+        logger.info(f"🎙️ TTS Generated: {filename} | Voice: {selected_voice}")
         return output_path
 
     except Exception as e:
-        logger.error(f"❌ Speech Synthesis Failed: {str(e)}")
+        logger.error(f"❌ TTS Engine Error: {str(e)}", exc_info=True)
         return None
