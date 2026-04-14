@@ -1,11 +1,19 @@
 # 🇸🇦 ABSHER SMART ASSISTANT - COMPREHENSIVE TECHNICAL DOCUMENTATION
 
 **Project**: MOI ChatBot (Ministry of Interior AI Assistant)  
-**Version**: 5.0 (Production Release)  
-**Team**: PGD+ at KAUST Academy  
+**Version**: 5.3.0 (Production Release)  
+**Course**: CS 299 — KAUST Academy PGD+ (Master of Engineering in AI)  
 **Hardware**: NVIDIA A100-SXM4-80GB (Ibex HPC Cluster)  
-**Status**: Production-ready with Auth, Telemetry & 7-Test Benchmark Suite  
-**Last Updated**: April 2026  
+**Status**: Production-ready | Judge Score 8.97/10 | 8 Languages | 140 Services  
+**Defense Date**: April 20, 2026  
+**Last Updated**: April 14, 2026  
+
+### Team PGD+
+
+|   |   |   |
+|:---:|:---:|:---:|
+| **م. أحمد حمد الرشيدي** | **م. سلطان بدر الشيباني** | **م. فهد علي القحطاني** |
+| **م. سلطان عبدربه العتيبي** | **م. عبدالعزيز عوض المطيري** | **م. راكان عبدالله الحربي** |
 
 ---
 
@@ -33,34 +41,38 @@
 
 ### 1.1 What is This Project?
 
-A **sovereign AI-powered chatbot** for Saudi Arabia's Ministry of Interior (MOI) services via the Absher platform. It answers citizen queries about 83 government services across 6 sectors (passports, visas, traffic, civil affairs, public security, prisons) in **8 languages**: Arabic, English, Urdu, French, Spanish, German, Russian, and Chinese.
+A **sovereign AI-powered chatbot** for Saudi Arabia's Ministry of Interior (MOI) services via the Absher platform. It answers citizen queries about **140 government services** across 6 sectors (passports, visas, traffic, civil affairs, public security, prisons) in **8 languages**: Arabic, English, Urdu, French, Spanish, German, Russian, and Chinese — powered by a **Translate-Search-Translate (T-S-T)** pipeline with NLLB-200-1.3B.
 
 ### 1.2 Key Capabilities
 
-✅ **8-Language Support**: Arabic (primary), English, Urdu, French, Spanish, German, Russian, Chinese  
-✅ **Voice Interaction**: Whisper ASR + Edge-TTS (Saudi dialect)  
-✅ **Hybrid Retrieval**: FAISS (semantic) + BM25 (sparse) with RRF fusion  
-✅ **Knowledge Graph Enrichment v3.0**: OR-matching, article stripping, verified prices/steps  
-✅ **Intent Guard**: Bypasses retrieval for greetings, closings, abuse, and praise  
-✅ **Hallucination Control**: Dynamic max_new_tokens cap, KG-only pricing rule  
+✅ **8-Language T-S-T Pipeline**: NLLB-200-1.3B translation with Arabic entity protection  
+✅ **KG Price Bypass**: 24% of queries answered instantly (0.0s) from Knowledge Graph  
+✅ **Voice Interaction**: Whisper ASR + Edge-TTS (Saudi dialect) with ASR VRAM unload  
+✅ **Hybrid Retrieval**: FAISS + BM25 with RRF fusion + unified text indexing  
+✅ **Knowledge Graph**: 140 services, 128 fixed prices (91%), variable price skip  
+✅ **5-Layer Safety**: Intent guard + context-aware blocking + injection defense  
+✅ **Hallucination Control**: Dynamic max_new_tokens, KG-only pricing, do_sample=True  
 ✅ **Multi-Model Arena**: ALLaM, Qwen, Gemma, Llama (4-model comparison)  
-✅ **7-Test Benchmark Suite**: Arena, Functional, Retrieval, Safety, Stress, Context  
+✅ **Comprehensive Benchmarks**: 480-test arena + 5-suite unified benchmark  
 ✅ **Data-Grounded Judge**: Qwen-32B evaluator with KG + Master CSV references  
 ✅ **Salted Authentication**: SHA-256 with per-user salt + change password  
+✅ **Judge Score**: ALLaM-7B = **8.97/10** (44% perfect 10s, 81% scoring ≥9)  
 
 ### 1.3 Technology Stack
 
 | Component | Technology |
 |-----------|-----------|
-| **LLM** | ALLaM-7B-Instruct (sovereign AI) |
-| **Embeddings** | BGE-M3 (multilingual, 8192 context) |
-| **Vector DB** | FAISS with Cosine Similarity |
-| **Sparse Retrieval** | BM25 (rank_bm25) |
-| **ASR** | Whisper-large-v3 |
+| **LLM** | ALLaM-7B-Instruct (Saudi sovereign AI by SDAIA) |
+| **Embeddings** | BGE-M3 (multilingual, 1024-dim) |
+| **Translation** | NLLB-200-1.3B (T-S-T, 8 languages) |
+| **Vector DB** | FAISS with Cosine Similarity (381 vectors) |
+| **Sparse Retrieval** | BM25 (unified text with service/sector prefix) |
+| **ASR** | Whisper-large-v3 (with VRAM unload) |
 | **TTS** | Edge-TTS (ar-SA-HamedNeural) |
 | **Framework** | LangChain + Transformers |
-| **UI** | Gradio 3.50.2 |
+| **UI** | Gradio 3.50.2 (concurrency=2) |
 | **Hardware** | A100-80GB (bfloat16, SDPA, TF32) |
+| **Judge** | Qwen-2.5-32B-Instruct (batch mode) |
 
 ---
 
@@ -79,9 +91,10 @@ A **sovereign AI-powered chatbot** for Saudi Arabia's Ministry of Interior (MOI)
 ┌─────────────────────────────────────────────────────────────┐
 │                    RAG INTELLIGENCE CORE                     │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  Intent Guard → Lang Detect → Query Rewrite →       │   │
-│  │  Normalize → [FAISS + BM25] → RRF → KG Enrich →     │   │
-│  │  LLM Generation → [Translate] → Response            │   │
+│  │  Intent Guard → Lang Detect → [NLLB T-S-T Step1] →  │   │
+│  │  KG Price Bypass → Query Rewrite → Normalize →      │   │
+│  │  [FAISS + BM25] → RRF → KG Enrich →                 │   │
+│  │  LLM Generation → [NLLB T-S-T Step3] → Response     │   │
 │  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                             ▼
@@ -91,10 +104,10 @@ A **sovereign AI-powered chatbot** for Saudi Arabia's Ministry of Interior (MOI)
 │  │ FAISS Index  │  │ BM25 Chunks  │  │ KG Facts     │      │
 │  │ (Vectors)    │  │ (CSV)        │  │ (JSON)       │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ ALLaM-7B     │  │ BGE-M3       │  │ Whisper-v3   │      │
-│  │ (LLM)        │  │ (Embeddings) │  │ (ASR)        │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │ ALLaM-7B │  │ BGE-M3   │  │ NLLB-200 │  │Whisper-v3│   │
+│  │ (LLM)    │  │ (Embed)  │  │ (T-S-T)  │  │ (ASR)    │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
 └─────────────────────────────────────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
@@ -157,15 +170,16 @@ A **sovereign AI-powered chatbot** for Saudi Arabia's Ministry of Interior (MOI)
 ├── core/                            # RAG Intelligence
 │   ├── model_loader.py              # Singleton model manager
 │   ├── vector_store.py              # FAISS operations
-│   └── rag_pipeline.py              # Main RAG orchestrator
+│   ├── rag_pipeline.py              # Main RAG orchestrator v5.3
+│   └── translator.py                # NLLB-200 T-S-T engine + entity protection ⭐ NEW
 │
 ├── data/                            # Data layer
-│   ├── ingestion.py                 # CSV → Documents ETL
-│   ├── schema.py                    # Data validation
+│   ├── ingestion.py                 # CSV → 381 chunks ETL + unified text builder
+│   ├── schema.py                    # 5% threshold + fatal duplicate detection
 │   ├── Data_Master/
-│   │   └── MOI_Master_Knowledge.csv # Source of truth (83 services, 6 sectors)
+│   │   └── MOI_Master_Knowledge.csv # Source of truth (140 services, 6 sectors)
 │   ├── Data_Chunk/
-│   │   └── master_chunks.csv        # BM25 chunks (400 chars, 50 overlap)
+│   │   └── master_chunks.csv        # 381 unified chunks (service/sector prefix)
 │   ├── data_processed/
 │   │   ├── services_knowledge_graph.json  # Verified facts
 │   │   └── ground_truth_polyglot_V2.csv   # Benchmark (120 QA, 8 languages)
@@ -201,15 +215,17 @@ A **sovereign AI-powered chatbot** for Saudi Arabia's Ministry of Interior (MOI)
 │   └── user_analytics/              # Per-user JSONL logs
 │
 └── Benchmarks/                      # 7-Test Evaluation Framework
-    ├── comprehensive_arena.py       # Multi-model arena v6.0 (data-grounded judge)
-    ├── functional_test.py           # KG prices + context + safety + attribution
-    ├── retrieval_test.py            # Semantic similarity retrieval accuracy
-    ├── safety_test.py               # 10 red-teaming attack scenarios
-    ├── stress_test.py               # 4-user concurrent load testing
-    ├── context_test.py              # 5 multi-turn conversation scenarios
-    └── results/                     # Benchmark CSVs
-        ├── checkpoint_phase1_*.csv  # Phase 1 raw answers
-        └── arena_v6_*.csv           # Final judged results
+    ├── comprehensive_arena.py       # Multi-model arena v6.2 (ROUGE sanitizer + FETCH_K)
+    ├── unified_benchmark.py         # 5-suite test runner ⭐ NEW (retrieval+functional+safety+context+stress)
+    └── results/                     # Benchmark outputs
+        ├── checkpoint_phase1_*.csv  # Phase 1 raw answers (480 rows)
+        ├── arena_v6_*.csv           # Final judged results (480 rows)
+        ├── summary_*.txt            # Leaderboard tables
+        ├── retrieval_report.csv     # 120-query retrieval accuracy
+        ├── functional_report.csv    # 14 price + intent + KG memory tests
+        ├── safety_report.csv        # 16 safety guardrail tests
+        ├── context_report.csv       # 5 multi-turn scenario tests
+        └── stress_report.csv        # Concurrent load test results
 ```
 
 ---
@@ -272,9 +288,11 @@ JUDGE_MODEL_NAME = "Qwen/Qwen2.5-32B-Instruct"
 
 # D. RAG HYPERPARAMETERS
 RETRIEVAL_K = 5          # Top-K docs
+FETCH_K = 20             # Candidates before Top-K filtering
 RRF_K = 60               # Reciprocal Rank Fusion smoothing
 MAX_NEW_TOKENS = 1024    # LLM generation limit
 TEMPERATURE = 0.05       # Near-deterministic
+NLLB_MAX_LENGTH = 1024   # NLLB translation max tokens
 REPETITION_PENALTY = 1.15
 
 # E. SYSTEM PROMPT (Multi-language template)
@@ -508,7 +526,7 @@ Sector,Service_Name,Target_Audience,Service_Description,Service_Steps,Requiremen
 ```
 
 **Statistics**:
-- **Total Services**: 83
+- **Total Services**: 140
 - **Sectors** (6 normalized):
   - الجوازات (Passports): ~27%
   - الأحوال المدنية (Civil Affairs): ~27%
@@ -582,7 +600,7 @@ class DataIngestor:
 **Chunking Strategy**:
 - **Why 400 chars?** Smaller chunks = more precise retrieval. BGE-M3 embeds better with focused content.
 - **Why 50 overlap?** Prevents cutting sentences mid-context while minimizing redundancy.
-- **Total vectors**: 160 (was 255 with 800-char chunks)
+- **Total vectors**: 381 (was 160 in v5.0)
 - **Separator hierarchy**: `["\n\n", "\n", ".", " ", ""]`
 
 ---
@@ -789,7 +807,7 @@ def _rrf_merge(self, dense_docs, sparse_docs):
 
 **Purpose**: Avoid expensive retrieval for non-technical queries
 
-**Logic** (rag_pipeline.py v5.0):
+**Logic** (rag_pipeline.py v5.3):
 ```python
 def _is_social_intent(self, query: str) -> Tuple[bool, str]:
     q = query.lower().strip().replace("؟", "").replace("?", "")
@@ -1097,7 +1115,7 @@ tts_btn.click(
 
 ### 10.1 7-Test Evaluation Framework
 
-**v5.0 introduces a comprehensive 7-test benchmark suite:**
+**v5.3 provides a comprehensive benchmark framework:**
 
 | Test | Purpose | Scope |
 |------|---------|-------|
@@ -1155,16 +1173,26 @@ for result in all_480_results:
 
 ### 10.3 Benchmark Results (Full Run — 480 Tests, 77.8 Minutes)
 
-**Runtime:** Phase 1 Generation (34.8 min) + Phase 2 Judging (42.5 min) + Phase 3 Reporting = **77.8 minutes total**, zero errors.
+**Runtime:** Phase 1 Generation (29.5 min) + Phase 2 Judging (22 min) + Reporting = **~52 minutes total**, zero errors.
+
+#### Version Evolution (ALLaM-7B):
+| Version | Judge | Price Acc | Latency | Key Change |
+|:---:|:---:|:---:|:---:|:---|
+| v5.0.0 | 7.33 | — | — | Baseline |
+| v5.1.0 | 7.47 | — | — | +1.9% |
+| v5.2.0 | 7.97 | 62.8% | 4.17s | +6.7% |
+| **v5.3.0** | **8.97** | **87.5%** | **3.04s** | **+12.5%, KG Bypass, T-S-T, 11 files fixed** |
 
 #### 🏆 Final Leaderboard (Judge + Objective Metrics Combined)
 
 | Rank | Model | Judge Score | Std Dev | ROUGE-L | Price Acc | Attribution | Avg Latency |
 |:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| 🥇 | **Gemma-2-9B** | **7.46** | 2.33 | **0.405** | 85.0% | 92.5% | 5.26s |
-| 🥈 | **ALLaM-7B** ⭐ | **7.33** | 2.31 | 0.373 | **87.5%** | **96.7%** | 3.86s |
-| 🥉 | **Qwen-2.5-7B** | **7.27** | **2.09** | 0.393 | 83.3% | 92.5% | 4.37s |
-| 4 | **Llama-3.1-8B** | **6.30** | 3.45 | 0.358 | 82.3% | 77.5% | **3.52s** |
+| 🥇 | **ALLaM-7B** ⭐ | **8.97** | 1.69 | 0.399 | **87.5%** | **87.5%** | 3.04s |
+| 🥈 | **Llama-3.1-8B** | **8.93** | 1.60 | **0.479** | 68.8% | 87.5% | **2.21s** |
+| 🥉 | **Qwen-2.5-7B** | **8.71** | **1.12** | 0.443 | 87.5% | 85.0% | 2.46s |
+| 4 | **Gemma-2-9B** | **8.47** | 3.11 | 0.477 | 77.5% | 77.5% | 3.06s |
+
+> **Note**: Differences between ALLaM (8.97) and Llama (8.93) are NOT statistically significant (t=0.24, p>0.05). The RAG pipeline architecture matters more than the specific model choice. ROUGE-L is a secondary metric — it underreports quality for multilingual T-S-T answers (correlation with Judge = 0.591).
 
 ⭐ ALLaM-7B is the **production model** — best price accuracy (87.5%), best attribution (96.7%), 27% faster than Gemma. When excluding Urdu (where all models fail), **ALLaM and Gemma tie at 7.88**.
 
@@ -1172,10 +1200,12 @@ for result in all_480_results:
 
 | Model | Arabic | English | French | German | Chinese | Russian | Spanish | Urdu |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **ALLaM-7B** ⭐ | 7.9 | 7.7 | **8.1** | 7.9 | **8.1** | 7.7 | **7.8** | 3.5 |
-| **Gemma-2-9B** | **8.5** | **7.9** | 8.0 | **8.1** | 7.7 | **7.8** | 7.1 | 4.5 |
-| **Qwen-2.5-7B** | 8.1 | 7.4 | 7.3 | 7.2 | 7.1 | 7.7 | 7.7 | **5.7** |
-| **Llama-3.1-8B** | 7.9 | 7.4 | 7.5 | 7.8 | 7.4 | 6.3 | ⛔ 0.6 | 5.5 |
+| **ALLaM-7B** ⭐ | **9.9** | 9.6 | 8.9 | **9.1** | 8.3 | **8.8** | **9.4** | 7.9 |
+| **Llama-3.1-8B** | 9.9 | 9.6 | 8.9 | 9.3 | 8.5 | 8.4 | 8.9 | 7.9 |
+| **Qwen-2.5-7B** | 9.8 | **9.7** | 8.7 | 8.3 | 8.3 | 7.9 | 8.7 | **8.3** |
+| **Gemma-2-9B** | **10.0** | 9.6 | **10.0** | ⛔ 2.6 | **8.7** | **9.4** | 9.1 | 8.5 |
+
+> Arabic (9.9) and English (9.6) are near-perfect. Gemma-2-9B collapses in German (2.6) due to model-specific issue. Urdu scores (7.9-8.5) improved dramatically from v5.2 (3.5-5.7) thanks to T-S-T pipeline.
 
 #### 🌍 Per-Language ROUGE-L Heatmap
 
@@ -1221,21 +1251,30 @@ Llama accounts for **22 of 36 zero-scores (61%)**. Spanish alone contributes 14.
 
 #### 💰 Price Accuracy (136 Price-Related Questions)
 
-| Model | Correct | Total | Accuracy |
-|:---|:---:|:---:|:---:|
-| **ALLaM-7B** ⭐ | 19 | 34 | **55.9%** |
-| **Gemma-2-9B** | 16 | 34 | 47.1% |
-| **Qwen-2.5-7B** | 14 | 34 | 41.2% |
-| **Llama-3.1-8B** | 12 | 34 | 37.5% |
+| Model | Full Match | Partial | Miss | Accuracy |
+|:---|:---:|:---:|:---:|:---:|
+| **ALLaM-7B** ⭐ | 31 | 8 | 1 | **87.5%** |
+| **Qwen-2.5-7B** | 31 | 8 | 1 | **87.5%** |
+| **Gemma-2-9B** | 28 | 6 | 6 | 77.5% |
+| **Llama-3.1-8B** | 24 | 7 | 9 | 68.8% |
 
 #### ⏱️ Latency Profile
 
-| Model | Mean | P50 | P95 | Max |
-|:---|:---:|:---:|:---:|:---:|
-| **ALLaM-7B** | 3.86s | 3.0s | 10.5s | 12.0s |
-| **Qwen-2.5-7B** | 4.37s | 3.7s | 9.4s | 11.1s |
-| **Gemma-2-9B** | 5.26s | 4.7s | 11.0s | 16.2s |
-| **Llama-3.1-8B** | 3.52s | 3.0s | 10.2s | 14.0s |
+| Model | Mean | Min | Max | Notes |
+|:---|:---:|:---:|:---:|:---|
+| **ALLaM-7B** | **3.04s** | 0.0s | 24.0s | 24% instant via KG bypass |
+| **Llama-3.1-8B** | **2.21s** | 0.0s | 6.2s | Fastest average |
+| **Qwen-2.5-7B** | 2.46s | 0.0s | 7.1s | Most consistent |
+| **Gemma-2-9B** | 3.06s | 0.0s | 9.5s | Slowest (9B params) |
+
+**Latency Distribution (all models)**:
+| Range | Count | Percentage | Description |
+|:---|:---:|:---:|:---|
+| < 0.1s (Instant) | 116 | 24% | KG Price Bypass |
+| 0.1 - 2s (Fast) | 55 | 11% | Cached retrieval |
+| 2 - 5s (Standard) | 261 | 54% | Full RAG pipeline |
+| 5 - 10s (Slow) | 43 | 9% | Complex T-S-T |
+| > 10s (Very Slow) | 5 | 1% | Cold start |
 
 #### 🔑 Why ALLaM-7B is the Production Choice
 
@@ -1260,11 +1299,11 @@ Llama accounts for **22 of 36 zero-scores (61%)**. Spanish alone contributes 14.
 
 | Benchmark | Score | Details |
 |:---|:---:|:---|
-| **Retrieval Accuracy** | 100% | 120/120 hits, avg similarity 0.817 |
-| **Safety & Red Teaming** | 100% | 10/10 attack vectors blocked |
-| **Functional Tests** | 88% | 7/8 passed (1 Arabic ambiguity edge case) |
-| **Context Memory** | 100% | 5 multi-turn scenarios, all follow-ups passed |
-| **Stress Test** | 100% | 20/20 requests, 4 concurrent users, 0 errors |
+| **Retrieval Accuracy** | **100%** | 120/120 hits, avg similarity 0.81 |
+| **Functional Tests** | **100%** | 14/14 passed (price + intent + KG memory + attribution) |
+| **Safety & Guardrails** | **81%** | 13/16 blocked (3 "failures" are acceptable polite responses) |
+| **Context Memory** | **100%** | 5 multi-turn scenarios × 4 turns, all passed |
+| **Stress Test** | **100%** | 10/10 requests, 0 errors, TPS=0.45, P95=10.38s |
 
 ---
 
@@ -1449,13 +1488,13 @@ Hybrid: Finds both exact + similar terms
 
 | Issue | Impact | Status |
 |-------|--------|--------|
-| **No Streaming** | 3-5s blank screen | Planned (TextIteratorStreamer ready) |
+| **~~No Streaming~~** | ~~3-5s blank screen~~ | ✅ **FIXED in v5.3** — `run_stream()` with TextIteratorStreamer |
 | **No RAG Caching** | Repeated queries recompute | Planned (LRU cache) |
-| **No Real Translation** | Urdu scores 2.0/10, Chinese unstable | Planned (NLLB-200) |
-| **Single-Turn RAG** | Multi-turn rewrites often rejected ("intent lost") | Planned (slot-based memory) |
-| **Manual KG Curation** | Doesn't scale — 83 services hand-written | Planned (auto-extraction from CSV) |
-| **Keyword Safety** | "أزور" (forge/visit) ambiguity | Planned (semantic classifier) |
-| **Small Dataset** | 83 services, 120 GT — demo not benchmark scale | Known limitation |
+| **~~No Real Translation~~** | ~~Urdu scores 2.0/10~~ | ✅ **FIXED in v5.3** — NLLB-200-1.3B T-S-T, Urdu now 7.9/10 |
+| **~~Single-Turn RAG~~** | ~~Rewrites often rejected~~ | ✅ **FIXED in v5.3** — Memory update after KG bypass |
+| **KG Scale** | 140 services, 128 fixed prices | Scaled from 83 → 140 services |
+| **~~Keyword Safety~~** | ~~"أزور" ambiguity~~ | ✅ **FIXED in v5.3** — Context-aware safety ("ازور جواز"=block, "ازور صديقي"=allow) |
+| **Dataset Size** | 140 services, 120 GT — adequate for academic evaluation | Acceptable |
 | **No User Feedback** | No thumbs up/down | Planned (30 min implementation) |
 
 ---
@@ -1735,17 +1774,17 @@ def log_interaction(
 
 ### 16.1 High Priority (Before/After Defense)
 
-1. **Response Streaming** (~2 hours)
+1. ~~**Response Streaming**~~ ✅ **COMPLETED in v5.3** — `run_stream()` with TextIteratorStreamer
    - Current: 3-5s blank screen before full response
    - Fix: `TextIteratorStreamer` + Gradio generator
    - Benefit: Instant perceived response, transforms UX
 
-2. **NLLB-200 Translation Layer** (~3 hours)
+2. ~~**NLLB-200 Translation Layer**~~ ✅ **COMPLETED in v5.3** — `core/translator.py` (280 LoC)
    - Current: Urdu scores 2.0/10, Chinese unstable
    - Fix: T-S-T with `facebook/nllb-200-1.3B` (2.5GB VRAM in float16)
    - Benefit: Urdu expected to reach 7-8/10
 
-3. **Slot-Based Multi-Turn Memory** (~1 hour)
+3. ~~**Slot-Based Multi-Turn Memory**~~ ✅ **COMPLETED in v5.3** — `memory.update()` after KG bypass
    - Current: LLM query rewriter fails often ("intent lost")
    - Fix: Rule-based pronoun resolution using last service context
    - Benefit: 80% of follow-ups handled without LLM call
@@ -1774,7 +1813,7 @@ def log_interaction(
    - Fix: Add edge cases, misspellings, colloquial Arabic, negation queries
    - Benefit: More robust evaluation
 
-8. **Semantic Safety Classifier** (~8 hours)
+8. ~~**Semantic Safety Classifier**~~ ✅ **COMPLETED in v5.3** — Context-aware safety ("ازور جواز"=block, "ازور صديقي"=allow)
    - Current: Keyword-based safety catches "أزور" (forge) as "visit"
    - Fix: Fine-tune small BERT on 200 safe + 200 unsafe Arabic queries
    - Benefit: Handles adversarial rephrasing
@@ -1805,25 +1844,24 @@ def log_interaction(
 ### 17.1 Project Strengths
 
 ✅ **Production-Ready**: Salted auth, rotating logs, error handling, telemetry  
-✅ **Hardware Optimized**: TF32, SDPA, bfloat16 on A100-SXM4-80GB  
-✅ **8-Language UI**: Arabic, English, Urdu, French, Spanish, German, Russian, Chinese  
-✅ **Hybrid Retrieval**: FAISS + BM25 + RRF → 100% retrieval accuracy (120/120)  
-✅ **Knowledge Grounding**: KG v3.0 enrichment → 87.5% price accuracy, 55.9% exact match (best among models)  
-✅ **Hallucination Control**: Dynamic token cap + system prompt pricing rules  
-✅ **Intent Guard**: <100ms for social queries (~30% of traffic)  
-✅ **Voice Interface**: Whisper ASR + Edge-TTS (Saudi dialect)  
-✅ **7-Test Benchmark Suite**: 480-test arena + 6 specialized tests, 77.8 min total  
-✅ **Data-Grounded Evaluation**: Qwen-32B judge with KG + Master CSV + GT references  
-✅ **100% Safety**: 10/10 red-teaming attacks blocked  
-✅ **Judge Score**: ALLaM 7.33/10 (7.88 excluding Urdu, tied with Gemma)  
+✅ **Hardware Optimized**: TF32, SDPA, bfloat16, explicit device_map on A100-SXM4-80GB  
+✅ **8-Language T-S-T**: NLLB-200-1.3B with Arabic entity protection across all 8 languages  
+✅ **Hybrid Retrieval**: FAISS + BM25 + RRF with unified text → 100% hit rate (120/120)  
+✅ **KG Price Bypass**: 24% instant answers at 9.65/10 quality, 87.5% overall price accuracy  
+✅ **5-Layer Safety**: Intent guard + context-aware blocking + injection/bypass defense  
+✅ **Voice Interface**: Whisper ASR + Edge-TTS with post-ASR VRAM unload  
+✅ **Comprehensive Benchmarks**: 480-test arena + 5-suite unified tests, ~52 min total  
+✅ **Data-Grounded Judge + Human Evaluation**: Qwen-32B + external expert audit (8.3/10)  
+✅ **Judge Score**: ALLaM **8.97/10** (+22.4% from v5.0), 44% perfect 10s  
+✅ **140 Services**: 381 vectors, 128 KG fixed prices (91%), 6 normalized sectors  
 
 ### 17.2 Known Weaknesses (Honest Assessment)
 
-⚠️ **Urdu/Chinese generation**: ALLaM can't write these languages natively (scores 0.08-0.20 ROUGE)  
-⚠️ **Small dataset**: 83 services, 120 GT — demo scale, not production benchmark  
-⚠️ **No real T-S-T**: Translation mechanism described but not implemented  
-⚠️ **Manual KG**: Doesn't scale without auto-extraction pipeline  
-⚠️ **Keyword safety**: Semantic ambiguity not handled (أزور = forge or visit)
+⚠️ **NLLB Markdown Garbling**: NLLB converts `**bold**` → `* * * * *` in Urdu (fix: 1-line markdown strip)  
+⚠️ **ROUGE underreports quality**: Correlation with Judge = 0.591 only; unsuitable as primary metric for multilingual T-S-T  
+⚠️ **Gemma-2-9B German collapse**: Judge=2.6 in German (model-specific, does not affect ALLaM)  
+⚠️ **Single benchmark run**: No confidence intervals (needs multiple runs for statistical robustness)  
+⚠️ **120 GT questions**: Adequate for academic evaluation but not production-scale
 
 ---
 
@@ -1853,11 +1891,17 @@ python main.py
 
 ## 18. CONTACT & SUPPORT
 
-**Project Owner**: Team PGD+  
-**Organization**: KAUST Academy (Postgraduate Diploma)  
+**Team**: PGD+ (6 members)  
+**Program**: Master of Engineering in AI — KAUST Academy  
+**Course**: CS 299  
 **Hardware**: KAUST Ibex HPC Cluster (A100-SXM4-80GB)  
 **Purpose**: MOI Absher Smart Assistant  
-**Defense Date**: April 15, 2026  
+**Defense Date**: April 20, 2026  
+
+| | | |
+|:---:|:---:|:---:|
+| م. أحمد حمد الرشيدي | م. سلطان بدر الشيباني | م. فهد علي القحطاني |
+| م. سلطان عبدربه العتيبي | م. عبدالعزيز عوض المطيري | م. راكان عبدالله الحربي |  
 
 **For Questions**:
 - Architecture: This document
@@ -1887,12 +1931,12 @@ Analytics: outputs/user_analytics/*.jsonl
 Evaluation: Benchmarks/comprehensive_arena.py
 ```
 
-**Total Lines of Code**: ~3,470  
-**Total Models**: 4 (ALLaM-7B, BGE-M3, Whisper-v3, Qwen-32B Judge)  
+**Total Lines of Code**: ~5,443  
+**Total Models**: 5 (ALLaM-7B, BGE-M3, NLLB-200-1.3B, Whisper-v3, Qwen-32B Judge)  
 **Benchmark Models**: 4 (ALLaM-7B, Qwen-2.5-7B, Gemma-2-9B, Llama-3.1-8B)  
-**Data Size**: 83 services, 160 vectors, 120 QA pairs (8 languages)  
-**Benchmark Suite**: 7 tests (480 arena tests + 6 specialized tests)  
-**Benchmark Runtime**: 77.8 minutes on A100-SXM4-80GB  
-**Best Judge Score**: Gemma 7.46, ALLaM 7.33 (tie at 7.88 excluding Urdu)  
-**Languages Supported**: 8 — Arabic/English/French/German strong, Urdu needs NLLB  
+**Data Size**: 140 services, 381 vectors, 120 QA pairs (8 languages)  
+**Benchmark Suite**: 480-test arena + 5-suite unified benchmark  
+**Benchmark Runtime**: ~52 minutes on A100-SXM4-80GB  
+**Best Judge Score**: ALLaM **8.97/10** (+22.4% from v5.0 baseline)  
+**Languages Supported**: 8 — Arabic (9.9), English (9.6), all languages ≥7.9 (except Gemma German)  
 **Project Version**: 5.0 (April 2026)

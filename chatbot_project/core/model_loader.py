@@ -2,6 +2,14 @@
 # File Name: core/model_loader.py
 # Purpose: Expert Model Management & VRAM Optimization (A100/H100 Ready).
 # Project: Absher Smart Assistant (MOI ChatBot)
+# Version: 5.3.0 (Explicit Device Map + ASR Unload)
+#
+# Changelog v5.2.0 → v5.3.0:
+#   - [FIX] device_map="auto" → explicit {"": cuda:N} to prevent VRAM collision
+#           with Embeddings/NLLB models. (Engineer Report §4A)
+#   - [FIX] Added unload_asr_only() to reclaim ~3GB VRAM after voice transcription.
+#           Whisper was loaded lazily but never unloaded. (Engineer Report §4B)
+#
 # Features:
 # - Unified Cache Path: Strictly uses /models directory for all AI assets.
 # - SDPA Acceleration: Native PyTorch optimization for high-speed inference.
@@ -132,16 +140,23 @@ class ModelManager:
             if tokenizer.pad_token is None:
                 tokenizer.pad_token = tokenizer.eos_token
 
-            # 2. Load Model weights with the hardware-optimized precision (e.g., bfloat16)
+            # 2. Load Model weights with hardware-optimized precision
+            # [FIX v5.3.0] Replaced device_map="auto" with explicit device mapping.
+            # "auto" lets accelerate fragment the LLM across ALL visible VRAM,
+            # but it's blind to manually-placed models (Embeddings on cuda:0,
+            # NLLB on cuda:0). Under load, accelerate overwrites their memory → OOM.
+            # Explicit mapping forces LLM to a known memory boundary.
+            _device_map = {"": torch.cuda.current_device()} if Config.DEVICE == "cuda" else "cpu"
+
             model = AutoModelForCausalLM.from_pretrained(
                 target_model,
                 token=Config.HF_TOKEN,
                 cache_dir=Config.MODELS_CACHE_DIR,
-                torch_dtype=Config.TORCH_DTYPE,  # Keep for backward compat with older transformers
-                device_map="auto", 
+                dtype=Config.TORCH_DTYPE,
+                device_map=_device_map,
                 trust_remote_code=True,
                 attn_implementation=attn_impl,
-                low_cpu_mem_usage=True  # Additional memory optimization
+                low_cpu_mem_usage=True
             )
 
             # Update Class Singletons
@@ -182,8 +197,7 @@ class ModelManager:
                 "automatic-speech-recognition",
                 model=Config.ASR_MODEL_NAME,
                 device=device_id,
-                # Use torch_dtype to comply with modern Transformers pipeline API
-                torch_dtype=torch.float16 if Config.DEVICE == "cuda" else torch.float32,
+                dtype=torch.float16 if Config.DEVICE == "cuda" else torch.float32,
                 chunk_length_s=30,
                 model_kwargs={
                     "cache_dir": Config.MODELS_CACHE_DIR
@@ -200,16 +214,27 @@ class ModelManager:
         """
         Selectively unloads the LLM and Tokenizer to free up bulk VRAM.
         Leaves the Embedding model and ASR pipeline intact for continued retrieval tasks.
+        Uses explicit deletion for device_map="auto" models managed by accelerate.
         """
         logger.warning("🧹 Purging LLM from VRAM...")
         
         # Snapshot VRAM before purge
         vram_before = torch.cuda.memory_allocated() / 1e9 if torch.cuda.is_available() else 0
         
+        # Explicitly delete model objects (not just set to None)
+        # device_map="auto" models hold GPU tensors via accelerate dispatch hooks;
+        # del triggers __del__ which releases those hooks and tensors
+        if cls._llm_instance is not None:
+            del cls._llm_instance
+        if cls._tokenizer_instance is not None:
+            del cls._tokenizer_instance
+        
         cls._llm_instance = None
         cls._tokenizer_instance = None
         cls._current_llm_name = None
         
+        # Double gc.collect() to handle circular references in model graphs
+        gc.collect()
         gc.collect()
         
         if torch.cuda.is_available():
@@ -219,6 +244,32 @@ class ModelManager:
             logger.info(f"✨ LLM purged | VRAM freed: {vram_before - vram_after:.1f} GB | Remaining: {vram_after:.1f} GB")
         else:
             logger.info("✨ LLM VRAM targeted reset complete.")
+
+    @classmethod
+    def unload_asr_only(cls):
+        """
+        [FIX v5.3.0] Selectively unloads the ASR (Whisper) pipeline to reclaim ~3GB VRAM.
+        Call this immediately after voice transcription completes.
+        Whisper is loaded lazily but was never unloaded, permanently consuming VRAM
+        even after a single voice note. (Engineer Report §4B)
+        """
+        if cls._asr_pipeline_instance is None:
+            return
+
+        logger.info("🧹 Purging ASR (Whisper) from VRAM...")
+        vram_before = torch.cuda.memory_allocated() / 1e9 if torch.cuda.is_available() else 0
+
+        del cls._asr_pipeline_instance
+        cls._asr_pipeline_instance = None
+
+        gc.collect()
+        gc.collect()
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+            vram_after = torch.cuda.memory_allocated() / 1e9
+            logger.info(f"✨ ASR purged | VRAM freed: {vram_before - vram_after:.1f} GB")
 
     @classmethod
     def unload_all(cls):
@@ -231,12 +282,24 @@ class ModelManager:
         
         vram_before = torch.cuda.memory_allocated() / 1e9 if torch.cuda.is_available() else 0
         
+        # Explicitly delete all model objects to release accelerate dispatch hooks
+        if cls._llm_instance is not None:
+            del cls._llm_instance
+        if cls._tokenizer_instance is not None:
+            del cls._tokenizer_instance
+        if cls._embed_model_instance is not None:
+            del cls._embed_model_instance
+        if cls._asr_pipeline_instance is not None:
+            del cls._asr_pipeline_instance
+        
         cls._llm_instance = None
         cls._tokenizer_instance = None
         cls._embed_model_instance = None
         cls._asr_pipeline_instance = None
         cls._current_llm_name = None
             
+        # Double gc.collect() to handle circular references in model graphs
+        gc.collect()
         gc.collect()
         
         if torch.cuda.is_available():

@@ -1,0 +1,34 @@
+ABSHER BENCHMARK REPORT v6.2 (Data-Grounded + A100 Optimized)
+Generated: 2026-04-14 18:19:15
+Total Tests: 480 (4 models × 120 questions)
+
+LEADERBOARD:
+              Judge_Avg  Judge_Std  ROUGE_L  Price_Acc  Attribution  Latency
+Model                                                                       
+ALLaM-7B          8.975      1.688    0.399      0.958        0.875    3.037
+Llama-3.1-8B      8.925      1.599    0.479      0.896        0.875    2.212
+Qwen-2.5-7B       8.708      1.118    0.443      0.958        0.850    2.457
+Gemma-2-9B        8.475      3.106    0.477      0.925        0.775    3.064
+
+PER-LANGUAGE:
+Lang          Arabic  Chinese  English  French  German  Russian  Spanish  Urdu
+Model                                                                         
+ALLaM-7B         9.9      8.3      9.6     8.9     9.1      8.8      9.4   7.9
+Gemma-2-9B      10.0      8.7      9.6    10.0     2.6      9.4      9.1   8.5
+Llama-3.1-8B     9.9      8.5      9.6     8.9     9.3      8.4      8.9   7.9
+Qwen-2.5-7B      9.8      8.3      9.7     8.7     8.3      7.9      8.7   8.3
+
+PER-CATEGORY:
+Category      الأحوال المدنية  الأمن العام  الجوازات  المديرية العامة للسجون  المرور  وزارة الداخلية
+Model                                                                                               
+ALLaM-7B                  9.3          8.2       9.5                     9.4     8.6             7.9
+Gemma-2-9B                9.1          7.4       8.6                     8.4     8.1             8.2
+Llama-3.1-8B              9.5          7.9       9.3                     9.4     8.4             8.1
+Qwen-2.5-7B               9.0          8.0       8.9                     8.9     8.8             7.8
+
+PRICE ACCURACY:
+Model
+ALLaM-7B        0.875
+Qwen-2.5-7B     0.875
+Gemma-2-9B      0.775
+Llama-3.1-8B    0.688

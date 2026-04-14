@@ -1,6 +1,6 @@
 # =========================================================================
 # Project: Absher Smart Assistant (MOI ChatBot)
-# Environment: Production-Ready Configuration (v4.0)
+# Environment: Production-Ready Configuration (v5.1)
 # Target Hardware: NVIDIA A100 (Ampere Architecture)
 # Base Python: 3.9+
 # =========================================================================
@@ -23,6 +23,7 @@ sentence-transformers>=2.5.0
 tiktoken>=0.6.0
 huggingface_hub>=0.20.0
 langdetect>=1.0.9
+hf_transfer>=0.1.8
 
 # --- 4. AUDIO PROCESSING (ASR & TTS) ---
 edge-tts>=6.1.0
@@ -45,6 +46,9 @@ tqdm>=4.66.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 
-# --- 7. USER INTERFACE ---
+# --- 7. EVALUATION & BENCHMARKS ---
+rouge-score>=0.1.2
+
+# --- 8. USER INTERFACE ---
 pydantic<2.0.0
 gradio==3.50.2

@@ -77,7 +77,9 @@ outputs/images/*
 # --- 8. Benchmarks & Ground Truth 📊 ---
 temp_results.csv
 retrieval_report_*.csv
-Benchmarks/results/*.csv
+# ALLOW: Ensure all files in Benchmarks/results are tracked and uploaded
+!Benchmarks/results/
+!Benchmarks/results/*
 !Benchmarks/data/ground_truth_polyglot_V2.csv
 
 # --- 9. OS & IDE Configuration 💻 ---

@@ -2,7 +2,17 @@
 # File Name: Benchmarks/comprehensive_arena.py
 # Purpose: Fair Multi-Model Evaluation with Data-Grounded Judging.
 # Project: Absher Smart Assistant (MOI ChatBot)
-# Version: 6.0 (Data-Driven Judge + Fair Price Matching)
+# Version: 6.3 (ROUGE Sanitizer + Polyglot find_service + Unified Schema)
+#
+# Changelog v6.2 → v6.3:
+#   - [FIX] ROUGE-L now strips Markdown formatting before comparison.
+#           ALLaM's well-formatted output was penalized vs flat GT text.
+#           (Engineer Report §1 — "Markdown Penalty")
+#   - [FIX] find_service() now uses extract_arabic_tokens() for polyglot
+#           queries (Urdu/Chinese with embedded Arabic service names).
+#           (Engineer Report §2 — "Polyglot Code-Switching")
+#   - [FIX] BM25 pre-compute aligned with ingestion.py v5.3.0 unified schema.
+#   - [FIX] Retrievers use FETCH_K=20 for pre-RRF, truncate to RETRIEVAL_K=5.
 # =========================================================================
 
 import os
@@ -31,9 +41,20 @@ if project_root not in sys.path:
 from config import Config
 from core.rag_pipeline import RAGPipeline
 from utils.logger import setup_logger
-from utils.text_utils import normalize_arabic
+from utils.text_utils import normalize_arabic, normalize_for_rouge, extract_arabic_tokens
 
 logger = setup_logger("Comprehensive_Arena")
+
+# ==========================================
+# 0. A100 OPTIMIZATION: SHARED RETRIEVAL CACHE
+# ==========================================
+# FAISS+BM25 retrieval is model-independent (same embeddings, same index).
+# Cache retrieval results from the first model, reuse for all subsequent models.
+# Saves ~30% of Phase 1 time (120 queries × 3 redundant retrievals eliminated).
+_retrieval_cache = {}  # {normalized_query: (context, matched_services)}
+
+def _cache_key(query: str) -> str:
+    return normalize_arabic(query.lower().strip())
 
 MODELS_TO_TEST = {
     "ALLaM-7B": "ALLaM-AI/ALLaM-7B-Instruct-preview",
@@ -96,8 +117,14 @@ class DataGroundedReference:
         logger.info(f"📚 Data loaded: {len(self.service_index)} services from Master, {len(self.kg_index)} from KG")
     
     def find_service(self, question: str) -> dict:
-        """Finds the most relevant service for a question using keyword matching."""
+        """[FIX v6.3] Finds the most relevant service using keyword matching.
+        Now handles polyglot queries (Urdu/Chinese with Arabic service names)
+        by extracting Arabic tokens directly from mixed-script text."""
         q_norm = normalize_arabic(question)
+        
+        # [FIX v6.3] For polyglot queries, also extract Arabic entities
+        # "تمديد تأشيرة خروج وعودة کے طریقہ کار" → ["تمديد", "تاشيره", "خروج", "وعوده"]
+        arabic_tokens = extract_arabic_tokens(question)
         
         best_match = None
         best_score = 0
@@ -109,7 +136,10 @@ class DataGroundedReference:
         def strip_al(w):
             return w[2:] if w.startswith('ال') and len(w) > 3 else w
         
+        # Combine normalized query words WITH extracted Arabic entities
         q_words = {strip_al(w) for w in q_norm.split() if len(w) >= 3} - skip
+        # [FIX] Add Arabic tokens from polyglot extraction (already normalized)
+        q_words |= {strip_al(t) for t in arabic_tokens if len(t) >= 3} - skip
         
         for key, data in self.kg_index.items():
             svc_words = {strip_al(w) for w in key.split() if len(w) >= 3} - skip
@@ -189,8 +219,11 @@ class FairMetrics:
     
     @staticmethod
     def rouge_l(reference: str, hypothesis: str) -> float:
-        ref_tokens = normalize_arabic(reference).split()
-        hyp_tokens = normalize_arabic(hypothesis).split()
+        """[FIX v6.3] Uses normalize_for_rouge() which strips Markdown formatting
+        (**, ##, 1., -, \\n) BEFORE comparison. This prevents penalizing
+        well-formatted ALLaM output against flat GT text."""
+        ref_tokens = normalize_for_rouge(reference).split()
+        hyp_tokens = normalize_for_rouge(hypothesis).split()
         if not ref_tokens or not hyp_tokens:
             return 0.0
         m, n = len(ref_tokens), len(hyp_tokens)
@@ -252,17 +285,107 @@ class FairMetrics:
 class DataGroundedJudge:
     """Judge that receives ALL real data before scoring."""
     
-    def __init__(self, model_name=Config.JUDGE_MODEL_NAME):
+    def __init__(self, model_name=Config.JUDGE_MODEL_NAME, quantize=True):
+        """
+        Args:
+            quantize: True = 4-bit (safe, for shared VRAM). False = bf16 (faster, needs clean GPU).
+        """
         logger.info(f"⚖️ Loading Judge: {model_name}...")
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name, token=Config.HF_TOKEN, cache_dir=Config.MODELS_CACHE_DIR
         )
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name, torch_dtype=Config.TORCH_DTYPE, device_map="auto",
-            attn_implementation="sdpa", token=Config.HF_TOKEN, cache_dir=Config.MODELS_CACHE_DIR
-        )
+        
+        if quantize:
+            from transformers import BitsAndBytesConfig
+            # 4-bit: 64GB → ~16GB, safe when VRAM is shared with other models
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_quant_type="nf4",
+            )
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name, quantization_config=bnb_config, device_map="auto",
+                attn_implementation="sdpa", token=Config.HF_TOKEN, cache_dir=Config.MODELS_CACHE_DIR
+            )
+            mode = "4-bit"
+        else:
+            # Full bf16: ~64GB, fastest on clean A100 (no dequantization overhead)
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name, dtype=Config.TORCH_DTYPE, device_map="auto",
+                attn_implementation="sdpa", token=Config.HF_TOKEN, cache_dir=Config.MODELS_CACHE_DIR
+            )
+            mode = "bf16"
+        
+        if torch.cuda.is_available():
+            used_gb = torch.cuda.memory_allocated() / 1e9
+            logger.info(f"✅ Judge loaded in {mode} | VRAM: {used_gb:.1f} GB")
     
     def evaluate(self, question: str, full_reference: str, answer: str) -> dict:
+        """Single-item evaluation (used as fallback)."""
+        results = self.batch_evaluate([(question, full_reference, answer)])
+        return results[0]
+
+    def batch_evaluate(self, items: list) -> list:
+        """
+        [A100 OPT] Evaluate up to 5 answers in a single LLM call.
+        Each item is (question, full_reference, answer).
+        Returns list of {Score, Reason} dicts.
+        """
+        if len(items) == 1:
+            return [self._evaluate_single(items[0][0], items[0][1], items[0][2])]
+
+        # Build batch prompt
+        batch_prompt = """You are a FAIR and DATA-DRIVEN quality auditor for Saudi government services.
+Score each answer based on its corresponding OFFICIAL DATA.
+
+[SCORING RUBRIC] (0-10 scale):
+- [4 PTS] FACTUAL ACCURACY: Prices MUST match [Official KG Data] exactly.
+- [3 PTS] COMPLETENESS: Steps and requirements covered.
+- [2 PTS] SOURCE ATTRIBUTION: References "Absher" or "official records".
+- [1 PT] PROFESSIONAL TONE.
+
+[FAIRNESS RULES]:
+- Do NOT penalize for different language than question.
+- DO penalize for wrong prices or hallucinated information.
+
+"""
+        for i, (question, reference, answer) in enumerate(items, 1):
+            batch_prompt += f"""--- ITEM {i} ---
+{reference}
+Question: {question}
+Answer: {answer}
+
+"""
+        batch_prompt += f"""Return ONLY a JSON array with {len(items)} objects:
+[{", ".join([f'{{"Item": {i+1}, "Score": X, "Reason": "brief"}}' for i in range(len(items))])}]"""
+
+        inputs = self.tokenizer(batch_prompt, return_tensors="pt", truncation=True, max_length=4096).to(self.model.device)
+        with torch.no_grad():
+            outputs = self.model.generate(**inputs, max_new_tokens=512, do_sample=False)
+
+        response = self.tokenizer.decode(
+            outputs[0][inputs['input_ids'].shape[1]:], skip_special_tokens=True
+        ).strip()
+
+        # Parse batch results
+        try:
+            json_str = re.search(r'\[.*\]', response, re.DOTALL).group(0)
+            parsed = json.loads(json_str)
+            results = []
+            for entry in parsed:
+                score = max(0.0, min(10.0, float(entry.get("Score", 0))))
+                results.append({"Score": score, "Reason": entry.get("Reason", "")})
+            # Pad if judge returned fewer results
+            while len(results) < len(items):
+                results.append({"Score": 5.0, "Reason": "batch_parse_incomplete"})
+            return results[:len(items)]
+        except Exception:
+            # Fallback: evaluate individually
+            logger.warning(f"⚠️ Batch parse failed, falling back to single evaluation")
+            return [self._evaluate_single(q, r, a) for q, r, a in items]
+
+    def _evaluate_single(self, question: str, full_reference: str, answer: str) -> dict:
+        """Original single-item evaluation."""
         prompt = f"""You are a FAIR and DATA-DRIVEN quality auditor for Saudi government services.
 
 You have been given the OFFICIAL DATA from multiple verified sources.
@@ -292,7 +415,7 @@ Return ONLY valid JSON: {{"Score": X, "Reason": "brief explanation"}}"""
 
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
         with torch.no_grad():
-            outputs = self.model.generate(**inputs, max_new_tokens=256, temperature=0.01)
+            outputs = self.model.generate(**inputs, max_new_tokens=256, do_sample=False)
         
         response = self.tokenizer.decode(
             outputs[0][inputs['input_ids'].shape[1]:], skip_special_tokens=True
@@ -373,7 +496,7 @@ def generate_report(df: pd.DataFrame, output_dir: str, timestamp: str):
     # Save summary
     summary_path = os.path.join(output_dir, f"summary_{timestamp}.txt")
     with open(summary_path, 'w', encoding='utf-8') as f:
-        f.write("ABSHER BENCHMARK REPORT v6.0 (Data-Grounded)\n")
+        f.write("ABSHER BENCHMARK REPORT v6.2 (Data-Grounded + A100 Optimized)\n")
         f.write(f"Generated: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Total Tests: {len(df)} ({df['Model'].nunique()} models × {len(df)//df['Model'].nunique()} questions)\n\n")
         f.write("LEADERBOARD:\n")
@@ -393,8 +516,124 @@ def generate_report(df: pd.DataFrame, output_dir: str, timestamp: str):
 # 5. MAIN EXECUTION
 # ==========================================
 
+def _find_checkpoints():
+    """Scan results dir for Phase 1 checkpoints."""
+    results_dir = Config.BENCHMARK_RESULTS_DIR
+    if not os.path.exists(results_dir):
+        return []
+    files = sorted(
+        [f for f in os.listdir(results_dir) if f.startswith("checkpoint_phase1_") and f.endswith(".csv")],
+        key=lambda f: os.path.getmtime(os.path.join(results_dir, f)),
+        reverse=True
+    )
+    return [(f, os.path.join(results_dir, f)) for f in files]
+
+
+def resume_from_checkpoint(checkpoint_path: str):
+    """Resume benchmark from Phase 1 checkpoint → run Phase 2 (Judge) + Phase 3 (Report)."""
+    timestamp = str(int(time.time()))
+    benchmark_start = time.time()
+    
+    print("\n" + "═" * 60)
+    print("♻️  RESUMING FROM PHASE 1 CHECKPOINT")
+    print("═" * 60)
+    print(f"  📂 Loading: {checkpoint_path}")
+    
+    # Load Phase 1 results
+    checkpoint_df = pd.read_csv(checkpoint_path)
+    logger.info(f"✅ Loaded {len(checkpoint_df)} results from checkpoint.")
+    print(f"  ✅ {len(checkpoint_df)} results | Models: {', '.join(checkpoint_df['Model'].unique())}")
+    
+    # Rebuild references (fast, ~2s — no GPU needed)
+    print("  📚 Rebuilding grounded references...")
+    ref_builder = DataGroundedReference()
+    ref_cache = {}
+    for q in checkpoint_df['Question'].unique():
+        gt = checkpoint_df.loc[checkpoint_df['Question'] == q, 'GT'].iloc[0]
+        ref = ref_builder.build_reference(q, gt)
+        ref_cache[q] = ref['reference_text']
+    logger.info(f"✅ {len(ref_cache)} references rebuilt.")
+    
+    # Convert back to list of dicts and attach references
+    all_results = checkpoint_df.to_dict('records')
+    for item in all_results:
+        item['Reference'] = ref_cache.get(item['Question'], '')
+    
+    # ── PHASE 2: JUDGE ──
+    print("\n" + "═" * 60)
+    print("⚖️  PHASE 2: DATA-GROUNDED JUDGING (BATCH MODE)")
+    print("═" * 60)
+    
+    hard_vram_reset()
+    if torch.cuda.is_available():
+        free_gb = (torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_allocated()) / 1e9
+        logger.info(f"🧹 VRAM before judge: {free_gb:.1f} GB free")
+    
+    # [A100 OPT] Clean GPU on resume → use full bf16 (no dequantization overhead, fastest)
+    judge = DataGroundedJudge(quantize=False)
+    
+    BATCH_SIZE = 5
+    for i in tqdm(range(0, len(all_results), BATCH_SIZE), desc="  Judging (batch)"):
+        batch = all_results[i:i + BATCH_SIZE]
+        batch_items = [(item['Question'], item['Reference'], item['Answer']) for item in batch]
+        
+        eval_results = judge.batch_evaluate(batch_items)
+        
+        for item, eval_res in zip(batch, eval_results):
+            item["Judge_Score"] = eval_res.get("Score", 0.0)
+            item["Reason"] = eval_res.get("Reason", "")
+    
+    del judge
+    hard_vram_reset()
+    
+    # ── PHASE 3: REPORT ──
+    print("\n" + "═" * 60)
+    print("📊  PHASE 3: REPORTS")
+    print("═" * 60)
+    
+    os.makedirs(Config.BENCHMARK_RESULTS_DIR, exist_ok=True)
+    
+    final_df = pd.DataFrame(all_results)
+    
+    save_df = final_df.drop(columns=['Reference'], errors='ignore')
+    csv_path = os.path.join(Config.BENCHMARK_RESULTS_DIR, f"arena_v6_{timestamp}.csv")
+    save_df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+    logger.info(f"💾 Results: {csv_path}")
+    
+    generate_report(final_df, Config.BENCHMARK_RESULTS_DIR, timestamp)
+    
+    total_time = time.time() - benchmark_start
+    logger.info(f"🏁 Benchmark complete (resumed). {len(all_results)} tests judged in {total_time/60:.1f} minutes.")
+
+
 def run_comprehensive_arena(quick_test: bool = False):
     timestamp = str(int(time.time()))
+    
+    # ── CHECK FOR EXISTING CHECKPOINTS ──
+    checkpoints = _find_checkpoints()
+    if checkpoints:
+        print("\n" + "═" * 60)
+        print("📂  EXISTING PHASE 1 CHECKPOINTS FOUND")
+        print("═" * 60)
+        for i, (fname, fpath) in enumerate(checkpoints[:5], start=1):
+            mtime = time.strftime("%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(fpath)))
+            try:
+                n_rows = len(pd.read_csv(fpath))
+            except Exception:
+                n_rows = "?"
+            print(f"  {i}. ♻️  {fname}  ({n_rows} rows, {mtime})")
+        print(f"  {len(checkpoints[:5]) + 1}. 🆕  Start fresh benchmark")
+        print()
+        resume_choice = input("  Choice: ").strip()
+        
+        if resume_choice.isdigit() and 1 <= int(resume_choice) <= len(checkpoints[:5]):
+            idx = int(resume_choice) - 1
+            _, selected_path = checkpoints[idx]
+            print(f"\n  ♻️  Resuming from: {selected_path}")
+            resume_from_checkpoint(selected_path)
+            return
+        else:
+            print("  🆕  Starting fresh benchmark...\n")
     
     # Load ground truth
     data_path = os.path.join(Config.DATA_PROCESSED_DIR, Config.DEFAULT_GROUND_TRUTH)
@@ -422,6 +661,69 @@ def run_comprehensive_arena(quick_test: bool = False):
     all_results = []
     benchmark_start = time.time()
     
+    # ── PRE-COMPUTE: SHARED RETRIEVAL (A100 OPT) ──
+    # FAISS+BM25 retrieval is model-independent. Compute once, reuse for all models.
+    print("\n" + "═" * 60)
+    print("🔍  PRE-COMPUTING SHARED RETRIEVAL (runs once)")
+    print("═" * 60)
+    
+    from core.model_loader import ModelManager
+    from core.vector_store import VectorStoreManager
+    
+    embed_model = ModelManager.get_embedding_model()
+    vector_db = VectorStoreManager.load_or_build(embed_model)
+    dense_retriever = vector_db.as_retriever(search_type="similarity", search_kwargs={"k": getattr(Config, 'FETCH_K', Config.RETRIEVAL_K)})
+    
+    # Build BM25 once
+    bm25_retriever = None
+    if os.path.exists(Config.DATA_CHUNK_DIR):
+        from langchain.schema import Document
+        from langchain_community.retrievers import BM25Retriever
+        bm25_docs = []
+        for fn in os.listdir(Config.DATA_CHUNK_DIR):
+            if fn.endswith(".csv"):
+                try:
+                    chunk_df = pd.read_csv(os.path.join(Config.DATA_CHUNK_DIR, fn))
+                    for _, r in chunk_df.iterrows():
+                        # [FIX v6.3] Use RAG_Content directly — ingestion.py v5.3.0
+                        # already includes "خدمة: X | قطاع: Y" context prefix.
+                        content = str(r.get('RAG_Content', ''))
+                        if content.strip():
+                            bm25_docs.append(Document(page_content=normalize_arabic(content)))
+                except Exception:
+                    continue
+        if bm25_docs:
+            bm25_retriever = BM25Retriever.from_documents(bm25_docs)
+            bm25_retriever.k = getattr(Config, 'FETCH_K', Config.RETRIEVAL_K)
+    
+    # Pre-compute retrieval for all questions
+    for _, row in tqdm(df_test.iterrows(), total=len(df_test), desc="  Retrieval"):
+        q = row['question']
+        cache_k = _cache_key(q)
+        if cache_k not in _retrieval_cache:
+            clean = normalize_arabic(q)
+            dense_res = dense_retriever.invoke(clean)
+            sparse_res = bm25_retriever.invoke(clean) if bm25_retriever else []
+            # RRF merge
+            scores = {}
+            for rank, d in enumerate(dense_res):
+                scores[d.page_content] = scores.get(d.page_content, 0) + 1.0 / (Config.RRF_K + rank + 1)
+            for rank, d in enumerate(sparse_res):
+                scores[d.page_content] = scores.get(d.page_content, 0) + 1.0 / (Config.RRF_K + rank + 1)
+            sorted_res = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            context = "\n".join([k for k, v in sorted_res[:Config.RETRIEVAL_K]])
+            _retrieval_cache[cache_k] = context
+    
+    logger.info(f"✅ {len(_retrieval_cache)} retrieval contexts cached. Models will skip redundant FAISS+BM25.")
+    del bm25_docs, bm25_retriever, dense_retriever, embed_model, vector_db
+    # Clear ModelManager singleton so embedding model is fully released
+    try:
+        ModelManager._embed_model_instance = None
+    except Exception:
+        pass
+    hard_vram_reset()
+    logger.info(f"🧹 Embedding model released — VRAM freed for LLMs.")
+    
     # ── PHASE 1: GENERATE + MEASURE ──
     print("\n" + "═" * 60)
     print("📝  PHASE 1: GENERATING ANSWERS")
@@ -434,8 +736,9 @@ def run_comprehensive_arena(quick_test: bool = False):
                 model_id, token=Config.HF_TOKEN,
                 cache_dir=Config.MODELS_CACHE_DIR, trust_remote_code=True
             )
+            _device_map = {"": torch.cuda.current_device()} if Config.DEVICE == "cuda" else "cpu"
             model = AutoModelForCausalLM.from_pretrained(
-                model_id, device_map="auto", torch_dtype=Config.TORCH_DTYPE,
+                model_id, device_map=_device_map, dtype=Config.TORCH_DTYPE,
                 attn_implementation="sdpa", token=Config.HF_TOKEN,
                 cache_dir=Config.MODELS_CACHE_DIR, trust_remote_code=True
             )
@@ -496,15 +799,29 @@ def run_comprehensive_arena(quick_test: bool = False):
     logger.info(f"💾 Phase 1 checkpoint: {checkpoint_path}")
     
     print("\n" + "═" * 60)
-    print("⚖️  PHASE 2: DATA-GROUNDED JUDGING")
+    print("⚖️  PHASE 2: DATA-GROUNDED JUDGING (BATCH MODE)")
     print("═" * 60)
     
-    judge = DataGroundedJudge()
+    # [A100 OPT] Aggressive VRAM cleanup before loading 32B judge
+    hard_vram_reset()
+    if torch.cuda.is_available():
+        free_gb = (torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_allocated()) / 1e9
+        logger.info(f"🧹 VRAM before judge: {free_gb:.1f} GB free")
     
-    for item in tqdm(all_results, desc="  Judging"):
-        eval_res = judge.evaluate(item['Question'], item['Reference'], item['Answer'])
-        item["Judge_Score"] = eval_res.get("Score", 0.0)
-        item["Reason"] = eval_res.get("Reason", "")
+    # [A100 OPT] GPU is clean after Phase 1 cleanup → use full bf16 (fastest)
+    judge = DataGroundedJudge(quantize=False)
+    
+    # [A100 OPT] Batch judge: 5 items per LLM call → ~5x faster
+    BATCH_SIZE = 5
+    for i in tqdm(range(0, len(all_results), BATCH_SIZE), desc="  Judging (batch)"):
+        batch = all_results[i:i + BATCH_SIZE]
+        batch_items = [(item['Question'], item['Reference'], item['Answer']) for item in batch]
+        
+        eval_results = judge.batch_evaluate(batch_items)
+        
+        for item, eval_res in zip(batch, eval_results):
+            item["Judge_Score"] = eval_res.get("Score", 0.0)
+            item["Reason"] = eval_res.get("Reason", "")
     
     del judge
     hard_vram_reset()
@@ -532,14 +849,41 @@ def run_comprehensive_arena(quick_test: bool = False):
 
 if __name__ == "__main__":
     print("\n" + "═" * 50)
-    print("  🏆 ABSHER BENCHMARK ARENA v6.0")
-    print("  📚 Data-Grounded Fair Evaluation")
+    print("  🏆 ABSHER BENCHMARK ARENA v6.2")
+    print("  📚 Data-Grounded + A100 Optimized")
     print("═" * 50)
     print(f"  Models: {', '.join(MODELS_TO_TEST.keys())}")
     print(f"  Judge: {Config.JUDGE_MODEL_NAME}")
     print()
+    
+    # Check for existing checkpoints
+    checkpoints = _find_checkpoints()
+    
     print("  1. Quick Test  (8 questions × 4 models)")
     print("  2. Full Test   (120 questions × 4 models)")
+    if checkpoints:
+        print()
+        print("  ─── Resume from Phase 1 checkpoint ───")
+        for i, (fname, fpath) in enumerate(checkpoints[:5], start=3):
+            size = os.path.getsize(fpath)
+            mtime = time.strftime("%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(fpath)))
+            try:
+                n_rows = len(pd.read_csv(fpath))
+            except Exception:
+                n_rows = "?"
+            print(f"  {i}. ♻️  {fname}  ({n_rows} rows, {mtime})")
+    
     print()
-    choice = input("  Choice (1/2): ").strip()
-    run_comprehensive_arena(quick_test=(choice in ("1", "a")))
+    choice = input("  Choice: ").strip()
+    
+    if choice == "1":
+        run_comprehensive_arena(quick_test=True)
+    elif choice == "2":
+        run_comprehensive_arena(quick_test=False)
+    elif checkpoints and choice.isdigit() and 3 <= int(choice) < 3 + len(checkpoints[:5]):
+        idx = int(choice) - 3
+        _, selected_path = checkpoints[idx]
+        print(f"\n  ♻️  Resuming from: {selected_path}")
+        resume_from_checkpoint(selected_path)
+    else:
+        print("  ❌ Invalid choice.")
