@@ -243,10 +243,19 @@ class FairMetrics:
     
     @staticmethod
     def extract_prices(text: str) -> set:
+        """[Fix v5.3.1] Multilingual price extraction.
+        OLD: Only matched Western digits (0-9) via \\d
+        NEW: Also matches Eastern Arabic digits (٠-٩) used in Arabic/Urdu responses,
+             and handles comma-formatted numbers (1,000)."""
         prices = set()
-        for match in re.finditer(r'(\d{2,})', text):
+        # Eastern Arabic digit mapping: ٠١٢٣٤٥٦٧٨٩ → 0123456789
+        _EASTERN = str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')
+        normalized = text.translate(_EASTERN)
+        # Remove comma separators (1,000 → 1000)
+        normalized = re.sub(r'(\d),(\d{3})', r'\1\2', normalized)
+        for match in re.finditer(r'(\d{2,})', normalized):
             val = int(match.group(1))
-            if 50 <= val <= 10000:  # Filter noise (years like 5, 10 or random numbers)
+            if 50 <= val <= 10000:
                 prices.add(val)
         return prices
     
@@ -272,10 +281,30 @@ class FairMetrics:
     
     @staticmethod
     def attribution_check(answer: str) -> bool:
-        markers = ['أبشر', 'absher', 'السجلات الرسمية', 'official records', 'المصدر الرسمي',
-                   'based on', 'بناء على', 'وفقا', 'registros oficiales', 'selon les',
-                   'nach den offiziellen', 'согласно официальным']
-        return any(m in answer.lower() for m in markers)
+        """[Fix v5.3.1] Multi-pattern attribution check for 8 languages.
+        OLD: Only matched 'أبشر' (with hamza) — missed ابشر, ایبشر, 艾布舍尔
+        NEW: Matches all transliteration variants across T-S-T languages."""
+        answer_lower = answer.lower()
+        markers = [
+            # Arabic variants (hamza/no-hamza)
+            'أبشر', 'ابشر', 'منصة أبشر', 'منصة ابشر',
+            # English
+            'absher',
+            # Urdu (NLLB transliterations)
+            'ایبشر', 'ابشر پلیٹ', 'اپشر',
+            # Chinese
+            '艾布舍尔', '阿布舍尔',
+            # Russian
+            'абшер',
+            # Source attribution (all languages)
+            'السجلات الرسمية', 'official records', 'المصدر الرسمي',
+            'based on', 'بناء على', 'وفقا', 'وفقاً',
+            'registros oficiales', 'selon les',
+            'nach den offiziellen', 'согласно официальным',
+            # Platform references
+            'my.gov.sa', 'absher.sa', 'المنصة الرسمية',
+        ]
+        return any(m in answer_lower for m in markers)
 
 
 # ==========================================

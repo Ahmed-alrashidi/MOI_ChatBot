@@ -2,7 +2,7 @@
 # File Name: core/translator.py
 # Purpose: NLLB-200 Translation Engine & T-S-T Pipeline.
 # Project: Absher Smart Assistant (MOI ChatBot)
-# Version: 5.3.0 (Entity Protection + Dynamic Max Length)
+# Version: 5.3.1 (Entity Protection + Dynamic Max Length + Markdown Strip)
 #
 # Changelog v1.0 → v5.3.0:
 #   - [FIX] max_length now uses Config.NLLB_MAX_LENGTH (1024) instead of
@@ -12,6 +12,9 @@
 #           Arabic-script government terms (like تمديد تأشيرة) that already
 #           appear in polyglot queries, preventing NLLB from garbling them.
 #           (Engineer Report §6, §2 re: polyglot code-switching)
+#   - [FIX v5.3.1] _strip_markdown() before NLLB translation prevents
+#           '**bold**' → '* * * * *' garbling in Urdu/Chinese output.
+#           Root cause: NLLB tokenizer splits ** into individual * tokens.
 #   - [NEW] extract_and_augment_query(): for polyglot queries, extracts
 #           Arabic tokens directly and appends them to the translated query,
 #           ensuring BM25/FAISS can match against Arabic chunks.
@@ -262,14 +265,27 @@ class NLLBTranslator:
 
         return translated
 
+    @staticmethod
+    def _strip_markdown(text: str) -> str:
+        """[Fix v5.3.1] Strip markdown formatting before NLLB translation.
+        NLLB converts '**bold**' → '* * * * *' in Urdu/Chinese, destroying content.
+        Must strip BEFORE translation, not after."""
+        text = text.replace("**", "")
+        text = text.replace("##", "")
+        text = text.replace("# ", "")
+        text = text.replace("- ", "• ")  # Preserve list items as bullets
+        return text
+
     def translate_from_arabic(self, text: str, tgt_lang: str) -> str:
         """
         T-S-T Step 3: Translate Arabic RAG answer to user's language.
         Arabic/English targets pass through unchanged.
+        [Fix v5.3.1] Strips markdown before NLLB to prevent garbling.
         """
         if tgt_lang in PRIMARY_LANGS:
             return text
-        return self.translate(text, RAG_LANG, tgt_lang)
+        clean_text = self._strip_markdown(text)
+        return self.translate(clean_text, RAG_LANG, tgt_lang)
 
     def tst_pipeline(self, query: str, src_lang: str) -> Tuple[str, str]:
         """

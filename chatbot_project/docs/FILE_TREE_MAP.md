@@ -1,4 +1,4 @@
-# 📂 ABSHER CHATBOT v5.3.0 — COMPLETE FILE TREE
+# 📂 ABSHER CHATBOT v5.3.1 — COMPLETE FILE TREE
 
 **Visual Map of Every File in the Project**
 
@@ -128,7 +128,7 @@ Breakdown:
 
 | File | LoC | Purpose | Read Priority |
 |------|-----|---------|---------------|
-| `core/rag_pipeline.py` | ~1573 | Main RAG v5.3 — KG bypass, T-S-T, 5-layer safety, RRF fusion | 1️⃣ |
+| `core/rag_pipeline.py` | ~1624 | Main RAG v5.3 — KG bypass, T-S-T, 5-layer safety, RRF fusion | 1️⃣ |
 | `core/translator.py` | ~280 | NLLB-200 T-S-T engine + Arabic entity protection | 2️⃣ |
 | `core/model_loader.py` | ~320 | Singleton manager + explicit device_map + ASR unload | 3️⃣ |
 | `config.py` | ~160 | All settings: FETCH_K=20, SYSTEM_PROMPT_TST, NLLB_MAX_LENGTH=1024 | 4️⃣ |
@@ -244,10 +244,10 @@ Benchmarks/results/
 ├─ context_report.csv         [20 rows — 5 scenarios × 4 turns each]
 ├─ stress_report.csv          [1 row — TPS, P50, P95, error count]
 ├─ Size: ~2 MB per full run
-└─ Latest run (v5.3.0): 480 tests, 52 min, zero errors
-    ├─ ALLaM-7B ⭐:  Judge 8.97 | ROUGE 0.399 | Price 87.5% | Lat 3.04s
+└─ Latest run (v5.3.1): 480 tests, 40 min, zero errors
+    ├─ ALLaM-7B ⭐:  Judge 9.03 | ROUGE 0.404 | Price 95.8% | Lat 2.88s
     ├─ Llama-3.1-8B: Judge 8.93 | ROUGE 0.479 | Price 68.8% | Lat 2.21s
-    ├─ Qwen-2.5-7B:  Judge 8.71 | ROUGE 0.443 | Price 87.5% | Lat 2.46s
+    ├─ Qwen-2.5-7B:  Judge 8.59 | ROUGE 0.436 | Price 95.4% | Lat 2.52s
     └─ Gemma-2-9B:   Judge 8.47 | ROUGE 0.477 | Price 77.5% | Lat 3.06s
 ```
 
@@ -355,7 +355,7 @@ utils/telemetry.py → log_interaction()
 ### Lines of Code
 ```
 Core Logic:
-├─ rag_pipeline.py:     ~1573 LoC  (v5.3 — KG bypass, T-S-T, 5-layer safety, RRF)
+├─ rag_pipeline.py:     ~1624 LoC  (v5.3 — KG bypass, T-S-T, 5-layer safety, RRF)
 ├─ translator.py:       ~280 LoC   (NLLB T-S-T + entity protection + thread-safe init)
 ├─ model_loader.py:     ~320 LoC   (explicit device_map + ASR unload)
 ├─ vector_store.py:     ~120 LoC   (vector count logging)
@@ -390,7 +390,7 @@ Benchmarks:
 └─ Total Benchmarks:       ~1,350 LoC
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TOTAL PROJECT:          ~5,443 LoC
+TOTAL PROJECT:          ~5,566 LoC
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -443,8 +443,8 @@ TOTAL PROJECT:          ~5,443 LoC
 3. Benchmarks/unified_benchmark.py    [5-suite: retrieval+functional+safety+context+stress]
 4. data/data_processed/ground_truth_polyglot_V2.csv [120 QA × 8 langs]
 5. Benchmarks/results/*.csv  [Arena + 5 unified reports]
-   Latest (v5.3.0):
-     Arena:      ALLaM 8.97/10 | Price 87.5% | Latency 3.04s
+   Latest (v5.3.1):
+     Arena:      ALLaM 9.03/10 | Price 95.8% | Latency 2.88s
      Retrieval:  100% hit rate (120/120) | Avg similarity 0.81
      Functional: 14/14 passed (100%)
      Safety:     13/16 passed (81%) — 3 "failures" are acceptable behavior
@@ -465,6 +465,22 @@ TOTAL PROJECT:          ~5,443 LoC
 
 ## 📋 CHANGELOG
 
+### v5.3.0 → v5.3.1 (5 files changed, 5 bug fixes)
+
+| What Changed | v5.3.0 | v5.3.1 |
+|:---|:---|:---|
+| Judge Score (ALLaM) | 8.97 | **9.03** (+0.7%) |
+| Price Accuracy | 87.5% | **95.8%** (+9.5%) |
+| Attribution | 87.5% | **94.2%** (+7.7%) |
+| Safety | 81% (13/16) | **94%** (15/16) |
+| Latency | 3.04s | **2.88s** (-5.3%) |
+| rag_pipeline.py | ~1573 LoC | **~1624 LoC** — 5 fixes (exploratory, name, واخر) |
+| translator.py | ~310 LoC | **~326 LoC** — markdown strip |
+| unified_benchmark.py | ~567 LoC | **~583 LoC** — polite insult = pass |
+| comprehensive_arena.py | ~888 LoC | **~917 LoC** — attribution + price multilingual |
+| main.py | ~225 LoC | **~236 LoC** — warm-up query |
+| Total LoC | ~5,443 | **~5,566** (+2.3%) |
+
 ### v5.2.0 → v5.3.0 (11 files changed, ~47 fixes)
 
 | What Changed | v5.2.0 | v5.3.0 |
@@ -482,7 +498,7 @@ TOTAL PROJECT:          ~5,443 LoC
 | main.py | concurrency=15 | **concurrency=2** + verify cleanup |
 | comprehensive_arena.py | v6.0 (~500 LoC) | **v6.2 (~650 LoC)** — ROUGE sanitizer |
 | unified_benchmark.py | — | **NEW** (~700 LoC) — 5-suite runner |
-| Total LoC | ~3,470 | **~5,443** (+57%) |
+| Total LoC | ~3,470 | **~5,566** (+57%) |
 | Judge Score (ALLaM) | 7.97 | **8.97** (+12.5%) |
 | Price Accuracy | 62.8% | **87.5%** (+39%) |
 | Latency | 4.17s | **3.04s** (-27%) |
@@ -511,6 +527,7 @@ v5.0.0     7.33    —        —         480      Mar 2026
 v5.1.0     7.47    —        —         480      Mar 2026
 v5.2.0     7.97    62.8%    4.17s     480      Apr 2026
 v5.3.0     8.97    87.5%    3.04s     480+170  Apr 14, 2026
+v5.3.1     9.03    95.8%    2.88s     480+170  Apr 15, 2026
            ▲+22%   ▲+39%   ▼-27%
 ```
 

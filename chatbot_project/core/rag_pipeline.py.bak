@@ -2,7 +2,7 @@
 # File Name: core/rag_pipeline.py
 # Purpose: Master Intelligence Orchestrator (The Sovereign AI Engine).
 # Project: Absher Smart Assistant (MOI ChatBot)
-# Version: 5.3.1 (Per-User Persistent Memory — 16+7 Fixes Applied)
+# Version: 5.3.0 (Per-User Persistent Memory — 16+7 Fixes Applied)
 #
 # Fixes applied from analysis report:
 #   Fix #1 (Critical): last_service now restored from JSONL matched_services field
@@ -282,13 +282,7 @@ class ConversationMemory:
             return "لم تطرح أي أسئلة بعد."
 
         # ── LAST QUESTION ──
-        last_q_patterns = [
-            'اخر سوال', 'آخر سوال', 'last question', 'السوال السابق', 'السؤال السابق',
-            'واخر سوال', 'واخر سؤال', 'و اخر سوال',
-            'السوال الاخير', 'السؤال الأخير', 'اخر شي سالتك', 'اخر شي سألتك',
-            'وش كان اخر سوال', 'وش كان اخر سؤال', 'وش اخر سوال',
-            'ايش كان اخر سوال', 'ايش كان اخر سؤال',
-        ]
+        last_q_patterns = ['اخر سوال', 'آخر سوال', 'last question', 'السوال السابق', 'السؤال السابق']
         if any(p in q_lower for p in last_q_patterns):
             if len(self.history) >= 2:
                 return f"سؤالك السابق كان: \"{self.history[-2][0]}\""
@@ -396,13 +390,6 @@ class ConversationMemory:
     def _detect_name_intro(self, query: str) -> Optional[str]:
         """[F5] Detect 'اسمي X' and store the name. Stops at question words."""
         q = query.strip()
-        # [Fix #20 v5.3.1] If query ASKS about name, skip intro
-        q_check = normalize_arabic(q.lower())
-        recall_prefixes = ['ماهو اسمي', 'ما هو اسمي', 'وش اسمي', 'ايش اسمي',
-                          'تذكر اسمي', 'تتذكر اسمي', 'تعرف اسمي', 'عرفت اسمي',
-                          'ذاكر اسمي', 'اسمي ايش', 'اسمي وش']
-        if any(p in q_check for p in recall_prefixes):
-            return None
         # [Bug #2 Fix] Stop capture at question words (هل، كيف، وش، ايش) or punctuation
         name_intros = [
             r'(?:انا\s+)?اسمي\s+([^\?؟,،!\.]+?)(?:\s+(?:هل|كيف|وش|ايش|ابغى|ابي|اريد|اقدر|ممكن|ساعدني|تقدر|تستطيع|مساعد)[\s\S]*|$)',
@@ -556,15 +543,6 @@ class RAGPipeline:
         }
         if num_words <= 2 and q in short_noise:
             return True, "closing"
-        # [Fix #19 v5.3.1] Exploratory queries
-        exploratory_patterns = {
-            'حاب استفسر', 'ابغى استفسر', 'ابي استفسر', 'اريد استفسار',
-            'ابغى اسال', 'ابي اسال', 'اريد اسال',
-            'عندي سوال', 'عندي سؤال', 'عندي استفسار',
-            'i have a question', 'i want to ask', 'can i ask',
-        }
-        if num_words <= 6 and any(p in q for p in exploratory_patterns):
-            return True, "exploratory"
 
         # [Fix #10] Emoji-only messages (👍👎🔥 etc.) — no Arabic/Latin text
         if query.strip() and not any(c.isalpha() or '\u0600' <= c <= '\u06FF' for c in query):
@@ -591,11 +569,6 @@ class RAGPipeline:
                 return True, "greeting"
             if any(q.startswith(g) for g in greetings_starts):
                 return True, "greeting"
-        # [Fix #22 v5.3.1] Long greeting + exploratory
-        if num_words > 5 and any(q.startswith(g) for g in greetings_starts):
-            has_exploratory = any(ep in q for ep in {'حاب استفسر', 'ابغى استفسر', 'عندي سوال', 'عندي سؤال', 'want to ask', 'have a question'})
-            if has_exploratory:
-                return True, "greeting_exploratory"
 
         closings_exact = {
             'مع السلامة', 'في امان الله', 'بمان الله', 'الله يعينك',
@@ -662,14 +635,6 @@ class RAGPipeline:
     def _get_intent_response(self, intent_type: str, user_lang: str) -> str:
         is_english = (user_lang == 'en')
 
-        if intent_type == "greeting_exploratory":
-            if is_english:
-                return "Hello! Welcome to Absher Smart Assistant. Go ahead and ask about any service!"
-            return "وعليكم السلام ورحمة الله وبركاته! أهلاً بك في مساعد أبشر الذكي. تفضل اسألني عن أي خدمة وسأساعدك بالتفصيل."
-        if intent_type == "exploratory":
-            if is_english:
-                return "Of course! Go ahead and ask about any Absher service. I'm here to help."
-            return "بالتأكيد! تفضل اسألني عن أي خدمة من خدمات أبشر وسأساعدك بالتفصيل."
         if intent_type == "greeting":
             if is_english:
                 return "Hello! Welcome to Absher Smart Assistant. How can I help you with Ministry of Interior services today?"
@@ -1235,14 +1200,6 @@ class RAGPipeline:
 
         is_social, intent_type = self._is_social_intent(query)
         if is_social:
-            # [Fix #23 v5.3.1] Extract name from greeting
-            if intent_type in ("greeting", "greeting_exploratory"):
-                name_match = re.search(r"(?:انا|أنا)\s+(\S+)|my name is\s+(\w+)", query, re.IGNORECASE)
-                if name_match:
-                    name = next((g for g in name_match.groups() if g), None)
-                    if name and len(name) < 20 and name.lower() not in {'حاب', 'ابغى', 'ابي', 'اريد', 'وحاب'}:
-                        memory.user_name = name
-                        logger.info(f"👤 Name [{username}]: {name}")
             response = self._get_intent_response(intent_type, user_lang)
             memory.add_turn(query, response)
             return response
@@ -1397,14 +1354,6 @@ class RAGPipeline:
 
         is_social, intent_type = self._is_social_intent(query)
         if is_social:
-            # [Fix #23 v5.3.1] Extract name from greeting
-            if intent_type in ("greeting", "greeting_exploratory"):
-                name_match = re.search(r"(?:انا|أنا)\s+(\S+)|my name is\s+(\w+)", query, re.IGNORECASE)
-                if name_match:
-                    name = next((g for g in name_match.groups() if g), None)
-                    if name and len(name) < 20 and name.lower() not in {'حاب', 'ابغى', 'ابي', 'اريد', 'وحاب'}:
-                        memory.user_name = name
-                        logger.info(f"👤 Name [{username}]: {name}")
             response = self._get_intent_response(intent_type, user_lang)
             memory.add_turn(query, response)
             yield response

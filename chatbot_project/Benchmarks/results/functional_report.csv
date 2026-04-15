@@ -1,5 +1,5 @@
 ﻿Test,Passed,Latency,Details
-Price: كم رسوم اصدار الجواز؟,True,11.54,"Expected ['300', '600'], found ['300', '600']"
+Price: كم رسوم اصدار الجواز؟,True,1.91,"Expected ['300', '600'], found ['300', '600']"
 Price: كم رسوم إصدار هوية مقيم؟,True,0.02,"Expected ['600', '650'], found ['600', '650']"
 Price: كم رسوم تجديد الهوية الوطنية؟,True,0.02,"Expected ['مجانية'], found ['مجانية']"
 Price: كم رسوم الاعتراض على المخالفات المر,True,0.02,"Expected ['مجانية'], found ['مجانية']"
@@ -9,8 +9,8 @@ Intent_opinion,True,0.0,Looking for 'مختص فقط'
 Intent_closing,True,0.0,Looking for 'شكرا'
 Intent_frustration,True,0.0,Looking for 'أعتذر'
 Intent_abuse,True,0.0,Looking for 'أعتذر'
-Attribution,True,2.35,Checking for Absher reference
-Context_FollowUp,True,1.8,"Expected '600', got: تتيح منصة أبشر خدمة إصدار جواز سعودي لمدة عشر سنوات برسوم قد"
-KG_Bypass_Memory,True,1.79,"Expected 600/650 after pronoun, got: رسوم إصدار هوية مقيم هي:
+Attribution,True,5.08,Checking for Absher reference
+Context_FollowUp,True,2.49,"Expected '600', got: تتيح منصة أبشر خدمة إصدار جواز سفر سعودي بمدة صلاحية تبلغ 5 "
+KG_Bypass_Memory,True,1.82,"Expected 600/650 after pronoun, got: رسوم إصدار هوية مقيم هي:
 - للعمالة المنزلية: 600 ريال سعودي."
 Broad_Query_Guard,True,0.0,"Real sectors: True, Fake: False"
